@@ -1,0 +1,73 @@
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use App\Models\Rol;
+use App\Models\TipoUbicacion;
+use App\Models\Producto;
+use App\Models\Ubicacion;
+use Illuminate\Support\Facades\DB;
+
+class WmsSeeder extends Seeder
+{
+    /**
+     * Seed the application's database.
+     */
+    public function run(): void
+    {
+        // Crear Roles
+        $roles = [
+            ['nombre' => 'Administrador', 'descripcion' => 'Administrador del sistema'],
+            ['nombre' => 'Supervisor', 'descripcion' => 'Supervisor de almacén'],
+            ['nombre' => 'Operario', 'descripcion' => 'Operario de almacén'],
+        ];
+
+        foreach ($roles as $rol) {
+            Rol::create($rol);
+        }
+
+        // Crear Tipos de Ubicación
+        $tiposUbicacion = [
+            ['nombre' => 'Congelado', 'descripcion' => 'Ubicación para productos congelados'],
+            ['nombre' => 'Refrigerado', 'descripcion' => 'Ubicación para productos refrigerados'],
+            ['nombre' => 'Seco', 'descripcion' => 'Ubicación para productos secos'],
+        ];
+
+        foreach ($tiposUbicacion as $tipo) {
+            TipoUbicacion::create($tipo);
+        }
+
+        // Crear Ubicaciones de ejemplo
+        $tipoCongelado = TipoUbicacion::where('nombre', 'Congelado')->first();
+        $tipoRefrigerado = TipoUbicacion::where('nombre', 'Refrigerado')->first();
+        $tipoSeco = TipoUbicacion::where('nombre', 'Seco')->first();
+
+        $ubicaciones = [
+            ['codigo' => 'A-01-01-01', 'zona' => 'A', 'tipo_ubicacion_id' => $tipoCongelado->id, 'max_cantidad' => 1000, 'max_peso' => 5000],
+            ['codigo' => 'A-01-01-02', 'zona' => 'A', 'tipo_ubicacion_id' => $tipoCongelado->id, 'max_cantidad' => 1000, 'max_peso' => 5000],
+            ['codigo' => 'B-01-01-01', 'zona' => 'B', 'tipo_ubicacion_id' => $tipoRefrigerado->id, 'max_cantidad' => 800, 'max_peso' => 4000],
+            ['codigo' => 'B-01-01-02', 'zona' => 'B', 'tipo_ubicacion_id' => $tipoRefrigerado->id, 'max_cantidad' => 800, 'max_peso' => 4000],
+            ['codigo' => 'C-01-01-01', 'zona' => 'C', 'tipo_ubicacion_id' => $tipoSeco->id, 'max_cantidad' => 2000, 'max_peso' => 10000],
+            ['codigo' => 'C-01-01-02', 'zona' => 'C', 'tipo_ubicacion_id' => $tipoSeco->id, 'max_cantidad' => 2000, 'max_peso' => 10000],
+        ];
+
+        foreach ($ubicaciones as $ubicacion) {
+            Ubicacion::create($ubicacion);
+        }
+
+        // Crear Productos de ejemplo
+        $productos = [
+            ['codigo' => 'PROD-001', 'nombre' => 'Producto Congelado 1', 'tipo_producto' => 'Congelado', 'peso_unitario' => 0.5],
+            ['codigo' => 'PROD-002', 'nombre' => 'Producto Refrigerado 1', 'tipo_producto' => 'Refrigerado', 'peso_unitario' => 0.3],
+            ['codigo' => 'PROD-003', 'nombre' => 'Producto Seco 1', 'tipo_producto' => 'Seco', 'peso_unitario' => 1.0],
+        ];
+
+        foreach ($productos as $producto) {
+            Producto::create($producto);
+        }
+
+        $this->command->info('Datos iniciales creados exitosamente!');
+    }
+}
+

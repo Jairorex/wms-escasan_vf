@@ -1,0 +1,17 @@
+{
+  "dependencies": {
+    "@headlessui/react": "^2.2.9",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-navigation/bottom-tabs": "^7.8.6",
+    "@react-navigation/native": "^7.1.21",
+    "@react-navigation/native-stack": "^7.6.4",
+    "axios": "^1.13.2",
+    "date-fns": "^4.1.0",
+    "expo": "^54.0.25",
+    "expo-barcode-scanner": "^13.0.1",
+    "expo-camera": "~17.0.9",
+    "lucide-react-native": "^0.554.0",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.16.0"
+  }
+}
