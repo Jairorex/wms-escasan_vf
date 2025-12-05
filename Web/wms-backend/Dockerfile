@@ -25,11 +25,8 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction
 RUN mkdir -p storage/framework/{sessions,views,cache} storage/logs bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
 
-# Copiar y hacer ejecutable el script de inicio (después de COPY . .)
-RUN cp start.sh /usr/local/bin/start.sh && chmod +x /usr/local/bin/start.sh
-
 # Exponer puerto (Railway usa $PORT dinámicamente)
 EXPOSE 8080
 
-# Comando de inicio usando el script mejorado
-CMD ["/usr/local/bin/start.sh"]
+# Comando de inicio (Railway inyectará $PORT automáticamente)
+CMD sh -c "php artisan serve --host=0.0.0.0 --port=\${PORT:-8080}"
