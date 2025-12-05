@@ -6,13 +6,9 @@ return [
     |--------------------------------------------------------------------------
     | Cross-Origin Resource Sharing (CORS) Configuration
     |--------------------------------------------------------------------------
-    |
-    | Here you may configure your settings for cross-origin resource sharing
-    | or "CORS". This determines what cross-origin operations may execute
-    | in web browsers. You are free to adjust these settings as needed.
-    |
-    | To learn more: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
-    |
+    | Controla qué orígenes pueden hacer solicitudes al backend.
+    | Agregamos tanto los entornos locales como el dominio de producción.
+    |--------------------------------------------------------------------------
     */
 
     'paths' => ['api/*', 'sanctum/csrf-cookie'],
@@ -20,6 +16,10 @@ return [
     'allowed_methods' => ['*'],
 
     'allowed_origins' => [
+        // Producción (tu frontend en Vercel)
+        'https://wms-escasan-vf.vercel.app',
+
+        // Local (para desarrollo)
         'http://localhost:3000',
         'http://localhost:5173',
         'http://127.0.0.1:3000',
@@ -34,7 +34,6 @@ return [
 
     'max_age' => 0,
 
-    'supports_credentials' => false,
+    'supports_credentials' => true, // 👈 Habilita cookies y headers con credenciales
 
 ];
-
