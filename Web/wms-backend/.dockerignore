@@ -32,6 +32,7 @@
 # Archivos de scripts
 *.ps1
 *.sh
+!entrypoint.sh
 *.bat
 
 # Archivos de test

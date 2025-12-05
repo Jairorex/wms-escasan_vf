@@ -25,8 +25,18 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction
 RUN mkdir -p storage/framework/{sessions,views,cache} storage/logs bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
 
-# Copiar y hacer ejecutable el script de entrada (después de COPY . .)
-RUN cp entrypoint.sh /usr/local/bin/entrypoint.sh && chmod +x /usr/local/bin/entrypoint.sh
+# Copiar y hacer ejecutable el script de entrada (verificar que existe)
+RUN if [ -f entrypoint.sh ]; then \
+        cp entrypoint.sh /usr/local/bin/entrypoint.sh && \
+        chmod +x /usr/local/bin/entrypoint.sh; \
+    else \
+        echo "⚠️  entrypoint.sh no encontrado, creando uno básico..."; \
+        echo '#!/bin/sh' > /usr/local/bin/entrypoint.sh && \
+        echo 'php artisan config:clear || true' >> /usr/local/bin/entrypoint.sh && \
+        echo 'php artisan cache:clear || true' >> /usr/local/bin/entrypoint.sh && \
+        echo 'exec php artisan serve --host=0.0.0.0 --port=${PORT:-8080}' >> /usr/local/bin/entrypoint.sh && \
+        chmod +x /usr/local/bin/entrypoint.sh; \
+    fi
 
 # Exponer puerto (Railway usa $PORT dinámicamente)
 EXPOSE 8080
