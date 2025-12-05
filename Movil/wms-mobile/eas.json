@@ -22,22 +22,11 @@
     "production": {
       "android": {
         "buildType": "apk"
-      },
-      "ios": {
-        "bundleIdentifier": "com.escasan.wms"
       }
     }
   },
   "submit": {
-    "production": {
-      "android": {
-        "service": "google-play"
-      },
-      "ios": {
-        "appleId": "tu-email@ejemplo.com",
-        "ascAppId": "tu-app-id"
-      }
-    }
+    "production": {}
   }
 }
 
