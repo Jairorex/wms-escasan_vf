@@ -21,8 +21,13 @@ COPY . .
 # Instalar dependencias de Laravel
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
+# Crear directorios necesarios y establecer permisos
+RUN mkdir -p storage/framework/{sessions,views,cache} storage/logs bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache
+
 # Exponer puerto (Railway usa $PORT dinámicamente)
 EXPOSE 8080
 
 # Comando de inicio (Railway inyectará $PORT automáticamente)
+# Laravel sirve desde la raíz, las rutas API están en /api/*
 CMD sh -c "php artisan serve --host=0.0.0.0 --port=\${PORT:-8080}"
