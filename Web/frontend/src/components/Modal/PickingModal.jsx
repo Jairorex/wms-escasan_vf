@@ -254,29 +254,35 @@ export default function PickingModal({ isOpen, onClose, ordenId = null }) {
             </div>
           ) : (
             <div className="divide-y divide-gray-200">
-              {carrito.map((item, index) => (
-                <div key={index} className="px-4 py-3 flex items-center justify-between hover:bg-gray-50">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <Package className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm font-medium text-gray-900">
-                        Producto ID: {item.producto_id}
-                      </span>
+              {carrito.map((item, index) => {
+                // Buscar el producto en el array de productos
+                const producto = productos.find(p => p.id === item.producto_id)
+                const nombreProducto = producto ? `${producto.sku} - ${producto.nombre}` : `Producto ID: ${item.producto_id}`
+                
+                return (
+                  <div key={index} className="px-4 py-3 flex items-center justify-between hover:bg-gray-50">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <Package className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm font-medium text-gray-900">
+                          {nombreProducto}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Cantidad: {item.cantidad}
+                      </p>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Cantidad: {item.cantidad}
-                    </p>
+                    <button
+                      type="button"
+                      onClick={() => handleEliminarDelCarrito(index)}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Eliminar del carrito"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleEliminarDelCarrito(index)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Eliminar del carrito"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
@@ -290,14 +296,14 @@ export default function PickingModal({ isOpen, onClose, ordenId = null }) {
           <button
             type="button"
             onClick={handleClose}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 bg-cancel-500 text-white rounded-lg hover:bg-cancel-600 transition-colors"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={mutation.isLoading || carrito.length === 0}
-            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-4 py-2 bg-confirm-500 text-white rounded-lg hover:bg-confirm-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {mutation.isLoading ? 'Procesando...' : `Preparar Picking (${carrito.length})`}
           </button>

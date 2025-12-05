@@ -113,7 +113,7 @@ export default function Alertas() {
           <button
             onClick={handleGenerarAlertas}
             disabled={generarAlertasMutation.isPending}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-confirm-500 text-white rounded-lg hover:bg-confirm-600 disabled:opacity-50 transition-colors"
           >
             <RefreshCw className={`w-4 h-4 ${generarAlertasMutation.isPending ? 'animate-spin' : ''}`} />
             Generar Alertas
@@ -205,16 +205,16 @@ export default function Alertas() {
                       <button 
                         onClick={() => handleResolver(alerta.id)}
                         disabled={resolverMutation.isPending}
-                        className="px-3 py-1 text-sm bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50"
+                        className="px-3 py-1 text-sm bg-confirm-500 text-white rounded hover:bg-confirm-600 disabled:opacity-50"
                       >
                         Resolver
                       </button>
-                      <button 
+                      <button
                         onClick={() => {
                           setSelectedAlerta(alerta)
                           setIsDetailModalOpen(true)
                         }}
-                        className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50"
+                        className="px-3 py-1 text-sm bg-confirm-500 text-white rounded hover:bg-confirm-600"
                       >
                         Ver Detalles
                       </button>

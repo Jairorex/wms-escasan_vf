@@ -56,7 +56,7 @@ export default function Usuarios() {
             setSelectedUsuario(null)
             setIsModalOpen(true)
           }}
-          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-confirm-500 text-white rounded-lg hover:bg-confirm-600 transition-colors"
         >
           <Plus className="w-5 h-5" />
           Nuevo Usuario

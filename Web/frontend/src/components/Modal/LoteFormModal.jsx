@@ -4,13 +4,13 @@ import { X } from 'lucide-react'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { api } from '../../services/api'
 
-export default function LoteFormModal({ isOpen, onClose, lote = null, onSuccess }) {
+export default function LoteFormModal({ isOpen, onClose, lote = null, onSuccess, productoIdPredefinido = null }) {
   const queryClient = useQueryClient()
   
   // Estado inicial del formulario
   const [formData, setFormData] = useState({
     lote_codigo: '',
-    producto_id: '',
+    producto_id: productoIdPredefinido || '',
     cantidad_original: '',
     fecha_fabricacion: '',
     fecha_caducidad: ''
@@ -38,22 +38,22 @@ export default function LoteFormModal({ isOpen, onClose, lote = null, onSuccess 
     } else {
       setFormData({
         lote_codigo: '',
-        producto_id: '',
+        producto_id: productoIdPredefinido || '',
         cantidad_original: '',
         fecha_fabricacion: '',
         fecha_caducidad: ''
       })
     }
     setError(null)
-  }, [lote, isOpen])
+  }, [lote, isOpen, productoIdPredefinido])
 
   // Mutación para Crear Lote
   const createMutation = useMutation({
     mutationFn: (data) => api.createLote(data),
-    onSuccess: () => {
+    onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['lotes'] })
       if (onSuccess) {
-        onSuccess()
+        onSuccess(response.data)
       }
       onClose()
     },
@@ -163,7 +163,8 @@ export default function LoteFormModal({ isOpen, onClose, lote = null, onSuccess 
                       required
                       value={formData.producto_id}
                       onChange={handleChange}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-2 border"
+                      disabled={!!productoIdPredefinido}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-2 border disabled:bg-gray-100 disabled:cursor-not-allowed"
                     >
                       <option value="">Seleccione un producto</option>
                       {productos?.map(prod => (
@@ -214,14 +215,14 @@ export default function LoteFormModal({ isOpen, onClose, lote = null, onSuccess 
                     <button
                       type="button"
                       onClick={onClose}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                      className="px-4 py-2 text-sm font-medium text-white bg-cancel-500 rounded-md hover:bg-cancel-600"
                     >
                       Cancelar
                     </button>
                     <button
                       type="submit"
                       disabled={createMutation.isPending || updateMutation.isPending}
-                      className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 disabled:opacity-50"
+                      className="px-4 py-2 text-sm font-medium text-white bg-confirm-500 rounded-md hover:bg-confirm-600 disabled:opacity-50"
                     >
                       {createMutation.isPending || updateMutation.isPending ? 'Guardando...' : 'Guardar'}
                     </button>

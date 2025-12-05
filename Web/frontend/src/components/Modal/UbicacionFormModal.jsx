@@ -1,12 +1,18 @@
 import { useState, useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../services/api'
-import { MapPin, Box, Weight, Hash } from 'lucide-react'
+import { MapPin, Box, Weight, Hash, Warehouse } from 'lucide-react'
 import Modal from './Modal'
 import SelectWithCreate from '../SelectWithCreate'
 import { useNotification } from '../../contexts/NotificationContext'
 
-export default function UbicacionFormModal({ isOpen, onClose, ubicacion = null }) {
+export default function UbicacionFormModal({ 
+  isOpen, 
+  onClose, 
+  ubicacion = null, 
+  subbodegaIdPredefinida = null,
+  onSuccess 
+}) {
   const queryClient = useQueryClient()
   const { success, error: showError } = useNotification()
   const isEdit = !!ubicacion
@@ -17,6 +23,7 @@ export default function UbicacionFormModal({ isOpen, onClose, ubicacion = null }
     estante: '',
     nivel: '',
     tipo_ubicacion_id: '',
+    subbodega_id: '',
     max_peso: '',
     max_cantidad: ''
   })
@@ -28,6 +35,13 @@ export default function UbicacionFormModal({ isOpen, onClose, ubicacion = null }
     enabled: isOpen
   })
 
+  // Cargar subbodegas
+  const { data: subbodegas } = useQuery({
+    queryKey: ['subbodegas-ubicacion'],
+    queryFn: () => api.getSubbodegas(),
+    enabled: isOpen
+  })
+
   useEffect(() => {
     if (ubicacion) {
       setFormData({
@@ -36,6 +50,7 @@ export default function UbicacionFormModal({ isOpen, onClose, ubicacion = null }
         estante: ubicacion.estante || '',
         nivel: ubicacion.nivel || '',
         tipo_ubicacion_id: ubicacion.tipo_ubicacion_id || '',
+        subbodega_id: ubicacion.subbodega_id || '',
         max_peso: ubicacion.max_peso || '',
         max_cantidad: ubicacion.max_cantidad || ''
       })
@@ -46,11 +61,12 @@ export default function UbicacionFormModal({ isOpen, onClose, ubicacion = null }
         estante: '',
         nivel: '',
         tipo_ubicacion_id: '',
+        subbodega_id: subbodegaIdPredefinida || '',
         max_peso: '',
         max_cantidad: ''
       })
     }
-  }, [ubicacion, isOpen])
+  }, [ubicacion, isOpen, subbodegaIdPredefinida])
 
   const mutation = useMutation({
     mutationFn: (data) => {
@@ -60,9 +76,16 @@ export default function UbicacionFormModal({ isOpen, onClose, ubicacion = null }
         return api.createUbicacion(data)
       }
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['ubicaciones'] })
-      // Cerrar modal sin mostrar notificación de éxito
+      queryClient.invalidateQueries({ queryKey: ['ubicaciones-para-recepcion'] })
+      
+      // Extraer la ubicación creada de la respuesta
+      const ubicacionCreada = response?.data || response
+      if (onSuccess && ubicacionCreada) {
+        onSuccess(ubicacionCreada)
+      }
+      
       handleClose()
     },
     onError: (error) => {
@@ -77,6 +100,7 @@ export default function UbicacionFormModal({ isOpen, onClose, ubicacion = null }
       estante: '',
       nivel: '',
       tipo_ubicacion_id: '',
+      subbodega_id: '',
       max_peso: '',
       max_cantidad: ''
     })
@@ -87,7 +111,8 @@ export default function UbicacionFormModal({ isOpen, onClose, ubicacion = null }
     e.preventDefault()
     mutation.mutate({
       ...formData,
-      tipo_ubicacion_id: parseInt(formData.tipo_ubicacion_id),
+      tipo_ubicacion_id: formData.tipo_ubicacion_id ? parseInt(formData.tipo_ubicacion_id) : null,
+      subbodega_id: formData.subbodega_id ? parseInt(formData.subbodega_id) : null,
       max_peso: formData.max_peso ? parseFloat(formData.max_peso) : null,
       max_cantidad: formData.max_cantidad ? parseInt(formData.max_cantidad) : null
     })
@@ -100,6 +125,15 @@ export default function UbicacionFormModal({ isOpen, onClose, ubicacion = null }
     })
   }
 
+  // Generar código automático basado en pasillo, estante y nivel
+  const generarCodigo = () => {
+    const { pasillo, estante, nivel } = formData
+    if (pasillo || estante || nivel) {
+      const codigo = [pasillo || 'A', estante || '01', nivel || '01'].join('-')
+      setFormData(prev => ({ ...prev, codigo }))
+    }
+  }
+
   return (
     <Modal
       isOpen={isOpen}
@@ -108,21 +142,58 @@ export default function UbicacionFormModal({ isOpen, onClose, ubicacion = null }
       size="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Subbodega */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            <Warehouse className="w-4 h-4 inline mr-1" />
+            Subbodega *
+          </label>
+          <select
+            name="subbodega_id"
+            value={formData.subbodega_id}
+            onChange={handleChange}
+            required
+            disabled={!!subbodegaIdPredefinida}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100"
+          >
+            <option value="">Selecciona una subbodega</option>
+            {(Array.isArray(subbodegas) ? subbodegas : []).map((sub) => (
+              <option key={sub.id} value={sub.id}>
+                {sub.nombre} ({sub.tipo})
+              </option>
+            ))}
+          </select>
+          {subbodegaIdPredefinida && (
+            <p className="mt-1 text-xs text-gray-500">
+              La subbodega está predefinida desde la recepción
+            </p>
+          )}
+        </div>
+
         {/* Código */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             <Hash className="w-4 h-4 inline mr-1" />
             Código *
           </label>
-          <input
-            type="text"
-            name="codigo"
-            value={formData.codigo}
-            onChange={handleChange}
-            required
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            placeholder="A-01-01-01"
-          />
+          <div className="flex gap-2">
+            <input
+              type="text"
+              name="codigo"
+              value={formData.codigo}
+              onChange={handleChange}
+              required
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              placeholder="A-01-01-01"
+            />
+            <button
+              type="button"
+              onClick={generarCodigo}
+              className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm"
+            >
+              Generar
+            </button>
+          </div>
         </div>
 
         {/* Tipo de Ubicación */}
@@ -159,6 +230,7 @@ export default function UbicacionFormModal({ isOpen, onClose, ubicacion = null }
               value={formData.pasillo}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              placeholder="A"
             />
           </div>
           <div>
@@ -171,6 +243,7 @@ export default function UbicacionFormModal({ isOpen, onClose, ubicacion = null }
               value={formData.estante}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              placeholder="01"
             />
           </div>
           <div>
@@ -183,6 +256,7 @@ export default function UbicacionFormModal({ isOpen, onClose, ubicacion = null }
               value={formData.nivel}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              placeholder="01"
             />
           </div>
         </div>
@@ -201,6 +275,7 @@ export default function UbicacionFormModal({ isOpen, onClose, ubicacion = null }
               value={formData.max_peso}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              placeholder="100"
             />
           </div>
           <div>
@@ -214,6 +289,7 @@ export default function UbicacionFormModal({ isOpen, onClose, ubicacion = null }
               value={formData.max_cantidad}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              placeholder="500"
             />
           </div>
         </div>
@@ -223,20 +299,19 @@ export default function UbicacionFormModal({ isOpen, onClose, ubicacion = null }
           <button
             type="button"
             onClick={handleClose}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 bg-cancel-500 text-white rounded-lg hover:bg-cancel-600 transition-colors"
           >
             Cancelar
           </button>
           <button
             type="submit"
-            disabled={mutation.isLoading}
-            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            disabled={mutation.isPending}
+            className="px-4 py-2 bg-confirm-500 text-white rounded-lg hover:bg-confirm-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {mutation.isLoading ? 'Guardando...' : isEdit ? 'Actualizar' : 'Crear Ubicación'}
+            {mutation.isPending ? 'Guardando...' : isEdit ? 'Actualizar' : 'Crear Ubicación'}
           </button>
         </div>
       </form>
     </Modal>
   )
 }
-

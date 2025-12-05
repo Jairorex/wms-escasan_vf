@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { LogIn, Package, AlertCircle, Loader, Eye, EyeOff } from 'lucide-react'
+import { User, Lock, AlertCircle, Loader, ArrowRight, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 
 export default function Login() {
@@ -15,7 +15,6 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => {
-    // Si ya está autenticado, redirigir al dashboard
     if (isAuthenticated()) {
       navigate('/')
     }
@@ -38,47 +37,58 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+    <div className="min-h-screen bg-gradient-to-br from-escasan-green-500 via-yellow-500 to-escasan-orange-500 flex items-center justify-center p-4">
+      {/* Tarjeta de Login */}
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-10">
+        {/* Logo y Título */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-100 rounded-full mb-4">
-            <Package className="w-8 h-8 text-primary-600" />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900">WMS</h1>
-          <p className="text-gray-600 mt-2">Sistema de Gestión de Almacén</p>
+          <h1 className="text-4xl font-bold text-escasan-green-500 mb-1">ESCASAN</h1>
+          <p className="text-sm text-gray-500">Escalante Sánchez S.A.</p>
         </div>
 
+        {/* Título de Login */}
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Ingrese a su cuenta</h2>
+          <p className="text-sm text-gray-500">Introduzca sus credenciales a continuación</p>
+        </div>
+
+        {/* Error Message */}
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
-            <AlertCircle className="w-5 h-5" />
+          <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
+            <AlertCircle className="w-5 h-5 flex-shrink-0" />
             <span className="text-sm">{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Formulario */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Campo Usuario */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Usuario o Email
-            </label>
-            <input
-              type="text"
-              value={credentials.usuario}
-              onChange={(e) => {
-                setCredentials({ ...credentials, usuario: e.target.value })
-                setError('')
-              }}
-              required
-              disabled={loading}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-              placeholder="Ingresa tu usuario o email"
-            />
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <User className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                value={credentials.usuario}
+                onChange={(e) => {
+                  setCredentials({ ...credentials, usuario: e.target.value })
+                  setError('')
+                }}
+                required
+                disabled={loading}
+                className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border-0 rounded-lg focus:ring-2 focus:ring-escasan-green-500 focus:bg-white transition-colors disabled:opacity-50 text-gray-900 placeholder-gray-500"
+                placeholder="Usuario"
+              />
+            </div>
           </div>
 
+          {/* Campo Contraseña */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Contraseña
-            </label>
             <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Lock className="h-5 w-5 text-gray-400" />
+              </div>
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={credentials.password}
@@ -88,49 +98,60 @@ export default function Login() {
                 }}
                 required
                 disabled={loading}
-                className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-                placeholder="Ingresa tu contraseña"
+                className="w-full pl-12 pr-12 py-3.5 bg-gray-50 border-0 rounded-lg focus:ring-2 focus:ring-escasan-green-500 focus:bg-white transition-colors disabled:opacity-50 text-gray-900 placeholder-gray-500"
+                placeholder="••••••"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                disabled={loading}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
               >
                 {showPassword ? (
-                  <EyeOff className="w-5 h-5" />
+                  <EyeOff className="h-5 w-5" />
                 ) : (
-                  <Eye className="w-5 h-5" />
+                  <Eye className="h-5 w-5" />
                 )}
               </button>
             </div>
           </div>
 
+          {/* Botón Ingresar */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex items-center justify-center px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3.5 bg-escasan-green-500 text-white rounded-lg hover:bg-escasan-green-600 transition-colors font-medium text-base disabled:opacity-50 disabled:cursor-not-allowed mt-6"
           >
             {loading ? (
               <>
-                <Loader className="w-5 h-5 mr-2 animate-spin" />
-                Iniciando sesión...
+                <Loader className="w-5 h-5 animate-spin" />
+                Ingresando...
               </>
             ) : (
               <>
-                <LogIn className="w-5 h-5 mr-2" />
-                Iniciar Sesión
+                Ingresar
+                <ArrowRight className="w-5 h-5" />
               </>
             )}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-gray-500">
-          Sistema de gestión de almacén - Versión 1.0
+        {/* Link Olvidó Contraseña */}
+        <div className="text-center mt-6">
+          <button
+            type="button"
+            className="text-sm text-escasan-green-500 hover:text-escasan-green-600 font-medium transition-colors"
+          >
+            ¿Se te olvidó tu contraseña?
+          </button>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="absolute bottom-6 left-0 right-0 text-center">
+        <p className="text-white font-medium text-sm drop-shadow-lg">
+          Potenciando el <span className="font-bold">CAMPO Y LA GANADERÍA</span>
         </p>
       </div>
     </div>
   )
 }
-

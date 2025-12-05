@@ -61,7 +61,7 @@ export default function Productos() {
         </div>
         <button
           onClick={handleCreate}
-          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-confirm-500 text-white rounded-lg hover:bg-confirm-600 transition-colors"
         >
           <Plus className="w-5 h-5" />
           Nuevo Producto
@@ -93,7 +93,7 @@ export default function Productos() {
             <p className="text-red-500">Error al cargar productos. Por favor, intenta de nuevo.</p>
             <button
               onClick={() => refetch()}
-              className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+              className="mt-4 px-4 py-2 bg-confirm-500 text-white rounded-lg hover:bg-confirm-600"
             >
               Reintentar
             </button>

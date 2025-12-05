@@ -108,6 +108,13 @@ export const api = {
     return response.data.data || response.data
   },
 
+  asignarTarea: async (tareaId, operarioId) => {
+    const response = await apiClient.post(`/tasks/${tareaId}/assign`, {
+      usuario_id: operarioId
+    })
+    return response.data
+  },
+
   validateScan: async (data) => {
     const response = await apiClient.post('/tasks/validate-scan', data)
     return response.data
@@ -384,19 +391,22 @@ export const api = {
   getLotes: async (params = {}) => {
     try {
       const response = await apiClient.get('/lotes', { params })
+      // El backend devuelve { success: true, data: [...] }
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
-        return response.data.data
-      }
-      if (Array.isArray(response.data)) {
         return response.data
       }
-      if (Array.isArray(response.data?.data)) {
-        return response.data.data
+      // Fallback: si viene directamente como array
+      if (Array.isArray(response.data)) {
+        return { success: true, data: response.data }
       }
-      return []
+      // Fallback: si viene con data anidado
+      if (Array.isArray(response.data?.data)) {
+        return { success: true, data: response.data.data }
+      }
+      return { success: false, data: [] }
     } catch (error) {
       console.error('Error al obtener lotes:', error)
-      return []
+      return { success: false, data: [], error: error.message }
     }
   },
 
@@ -450,6 +460,273 @@ export const api = {
   getRoles: async () => {
     const response = await apiClient.get('/roles')
     return response.data.data || response.data || []
+  },
+
+  // ============================================
+  // NUEVOS MÓDULOS WMS v2.0
+  // ============================================
+
+  // Subbodegas
+  getSubbodegas: async (params = {}) => {
+    try {
+      const response = await apiClient.get('/subbodegas', { params })
+      // El backend devuelve { success: true, data: [...] }
+      if (response.data && response.data.success && Array.isArray(response.data.data)) {
+        return response.data
+      }
+      // Fallback: si viene directamente como array
+      if (Array.isArray(response.data)) {
+        return { success: true, data: response.data }
+      }
+      // Fallback: si viene con data anidado
+      if (Array.isArray(response.data?.data)) {
+        return { success: true, data: response.data.data }
+      }
+      return { success: false, data: [] }
+    } catch (error) {
+      console.error('Error al obtener subbodegas:', error)
+      return { success: false, data: [], error: error.message }
+    }
+  },
+
+  getSubbodega: async (id) => {
+    const response = await apiClient.get(`/subbodegas/${id}`)
+    return response.data
+  },
+
+  createSubbodega: async (data) => {
+    const response = await apiClient.post('/subbodegas', data)
+    return response.data
+  },
+
+  updateSubbodega: async (id, data) => {
+    const response = await apiClient.put(`/subbodegas/${id}`, data)
+    return response.data
+  },
+
+  deleteSubbodega: async (id) => {
+    const response = await apiClient.delete(`/subbodegas/${id}`)
+    return response.data
+  },
+
+      getTiposSubbodega: async () => {
+        const response = await apiClient.get('/subbodegas/tipos')
+        return response.data.data || response.data || []
+      },
+
+      getSubbodegaSugerida: async (productoId) => {
+        const response = await apiClient.get(`/subbodegas/sugerida/${productoId}`)
+        return response.data
+      },
+
+  getUbicacionesSubbodega: async (id) => {
+    const response = await apiClient.get(`/subbodegas/${id}/ubicaciones`)
+    return response.data.data || response.data || []
+  },
+
+  asignarUbicacionSubbodega: async (subbodegaId, ubicacionId) => {
+    const response = await apiClient.post(`/subbodegas/${subbodegaId}/ubicaciones`, { ubicacion_id: ubicacionId })
+    return response.data
+  },
+
+  registrarTemperaturaSubbodega: async (id, data) => {
+    const response = await apiClient.post(`/subbodegas/${id}/temperatura`, data)
+    return response.data
+  },
+
+  // Recepciones
+  getRecepciones: async (params = {}) => {
+    const response = await apiClient.get('/recepciones', { params })
+    return response.data.data || response.data || []
+  },
+
+  getRecepcion: async (id) => {
+    const response = await apiClient.get(`/recepciones/${id}`)
+    return response.data
+  },
+
+  crearRecepcionEstandar: async (data) => {
+    const response = await apiClient.post('/recepciones/estandar', data)
+    return response.data
+  },
+
+  crearRecepcionCadenaFria: async (data) => {
+    const response = await apiClient.post('/recepciones/cadena-fria', data)
+    return response.data
+  },
+
+  aprobarRecepcionExcepcion: async (id, data) => {
+    const response = await apiClient.post(`/recepciones/${id}/aprobar-excepcion`, data)
+    return response.data
+  },
+
+  rechazarRecepcion: async (id, data) => {
+    const response = await apiClient.post(`/recepciones/${id}/rechazar`, data)
+    return response.data
+  },
+
+  getEstadisticasRecepciones: async (params = {}) => {
+    const response = await apiClient.get('/recepciones/estadisticas', { params })
+    return response.data.data || response.data
+  },
+
+  // Reabastecimientos
+  getReabastecimientos: async (params = {}) => {
+    const response = await apiClient.get('/reabastecimientos', { params })
+    return response.data
+  },
+
+  getReabastecimiento: async (id) => {
+    const response = await apiClient.get(`/reabastecimientos/${id}`)
+    return response.data
+  },
+
+  crearReabastecimiento: async (data) => {
+    const response = await apiClient.post('/reabastecimientos', data)
+    return response.data
+  },
+
+  aprobarReabastecimiento: async (id, data = {}) => {
+    const response = await apiClient.post(`/reabastecimientos/${id}/aprobar`, data)
+    return response.data
+  },
+
+  ejecutarReabastecimiento: async (id) => {
+    const response = await apiClient.post(`/reabastecimientos/${id}/ejecutar`)
+    return response.data
+  },
+
+  completarReabastecimiento: async (id) => {
+    const response = await apiClient.post(`/reabastecimientos/${id}/completar`)
+    return response.data
+  },
+
+  cancelarReabastecimiento: async (id, motivo) => {
+    const response = await apiClient.post(`/reabastecimientos/${id}/cancelar`, { motivo })
+    return response.data
+  },
+
+  verificarStockMinimo: async () => {
+    const response = await apiClient.post('/reabastecimientos/verificar-stock')
+    return response.data
+  },
+
+  generarReabastecimientosProgramados: async () => {
+    const response = await apiClient.post('/reabastecimientos/generar-programados')
+    return response.data
+  },
+
+  getEstadisticasReabastecimientos: async (params = {}) => {
+    const response = await apiClient.get('/reabastecimientos/estadisticas', { params })
+    return response.data.data || response.data
+  },
+
+  // Categorías de Riesgo
+  getCategoriasRiesgo: async () => {
+    const response = await apiClient.get('/categorias-riesgo')
+    return response.data.data || response.data || []
+  },
+
+  createCategoriaRiesgo: async (data) => {
+    const response = await apiClient.post('/categorias-riesgo', data)
+    return response.data
+  },
+
+  updateCategoriaRiesgo: async (id, data) => {
+    const response = await apiClient.put(`/categorias-riesgo/${id}`, data)
+    return response.data
+  },
+
+  // Reglas de Compatibilidad
+  getReglasCompatibilidad: async (params = {}) => {
+    const response = await apiClient.get('/reglas-compatibilidad', { params })
+    return response.data.data || response.data || []
+  },
+
+  createReglaCompatibilidad: async (data) => {
+    const response = await apiClient.post('/reglas-compatibilidad', data)
+    return response.data
+  },
+
+  updateReglaCompatibilidad: async (id, data) => {
+    const response = await apiClient.put(`/reglas-compatibilidad/${id}`, data)
+    return response.data
+  },
+
+  deleteReglaCompatibilidad: async (id) => {
+    const response = await apiClient.delete(`/reglas-compatibilidad/${id}`)
+    return response.data
+  },
+
+  // ============================================
+  // CONTROL DE TEMPERATURA
+  // ============================================
+
+  // Lecturas de temperatura
+  getLecturasTemperatura: async (params = {}) => {
+    try {
+      const response = await apiClient.get('/temperaturas/lecturas', { params })
+      // El backend devuelve { success: true, data: [...] }
+      if (response.data && response.data.success && Array.isArray(response.data.data)) {
+        return response.data
+      }
+      // Fallback: si viene directamente como array
+      if (Array.isArray(response.data)) {
+        return { success: true, data: response.data }
+      }
+      // Fallback: si viene con data anidado
+      if (Array.isArray(response.data?.data)) {
+        return { success: true, data: response.data.data }
+      }
+      return { success: false, data: [] }
+    } catch (error) {
+      console.error('Error al obtener lecturas de temperatura:', error)
+      return { success: false, data: [], error: error.message }
+    }
+  },
+
+  registrarTemperatura: async (data) => {
+    const response = await apiClient.post('/temperaturas/registrar', data)
+    return response.data
+  },
+
+  getHistorialTemperatura: async (subbodegaId, params = {}) => {
+    const response = await apiClient.get(`/temperaturas/historial/${subbodegaId}`, { params })
+    return response.data.data || response.data || []
+  },
+
+  // Recepción cadena fría (alias más claro)
+  createRecepcionCadenaFria: async (data) => {
+    const response = await apiClient.post('/recepciones/cadena-fria', data)
+    return response.data
+  },
+
+  // ============================================
+  // MOVIMIENTOS DE INVENTARIO
+  // ============================================
+
+  getMovimientos: async (params = {}) => {
+    const response = await apiClient.get('/movimientos', { params })
+    return response.data.data || response.data || []
+  },
+
+  createMovimiento: async (data) => {
+    const response = await apiClient.post('/movimientos', data)
+    return response.data
+  },
+
+  // ============================================
+  // CÓDIGOS DE BARRAS / ETIQUETAS
+  // ============================================
+
+  generateBarcode: async (loteId) => {
+    const response = await apiClient.post(`/lotes/${loteId}/generate-barcode`)
+    return response.data
+  },
+
+  printEtiquetas: async (loteIds) => {
+    const response = await apiClient.post('/lotes/print-etiquetas', { lote_ids: loteIds })
+    return response.data
   },
 }
 

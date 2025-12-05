@@ -10,7 +10,10 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  Hash
+  Hash,
+  Inbox,
+  CheckSquare,
+  User
 } from 'lucide-react'
 import Modal from './Modal'
 
@@ -86,7 +89,7 @@ export default function TareaDetailModal({ isOpen, onClose, tareaId }) {
             </div>
           </div>
 
-          {/* Tipo y Fechas */}
+          {/* Tipo, Prioridad y Operario */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Tarea</label>
@@ -96,6 +99,31 @@ export default function TareaDetailModal({ isOpen, onClose, tareaId }) {
               <label className="block text-sm font-medium text-gray-700 mb-1">Prioridad</label>
               <p className="text-gray-900">{tarea.prioridad || 'Normal'}</p>
             </div>
+            {tarea.usuario_asignado && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  Operario Asignado
+                </label>
+                <p className="text-gray-900">
+                  {tarea.usuario_asignado.nombre || tarea.usuario_asignado.usuario}
+                  {tarea.usuario_asignado.rol && (
+                    <span className="ml-2 text-xs text-gray-500">
+                      ({typeof tarea.usuario_asignado.rol === 'string' ? tarea.usuario_asignado.rol : tarea.usuario_asignado.rol.nombre})
+                    </span>
+                  )}
+                </p>
+              </div>
+            )}
+            {!tarea.usuario_asignado && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  Operario Asignado
+                </label>
+                <p className="text-gray-400 italic">Sin asignar</p>
+              </div>
+            )}
             {tarea.fecha_creacion && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Creación</label>
@@ -122,14 +150,45 @@ export default function TareaDetailModal({ isOpen, onClose, tareaId }) {
             )}
           </div>
 
+          {/* Sección de Checkin para Recepciones (PUTAWAY) */}
+          {tarea.tipo_tarea === 'PUTAWAY' && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <CheckSquare className="w-5 h-5 text-blue-600" />
+                <h4 className="text-md font-semibold text-gray-900">Check-in de Recepción</h4>
+              </div>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <Inbox className="w-4 h-4 text-blue-500" />
+                  <span className="text-gray-700">
+                    <strong>Origen:</strong> Recepción (Entrada Externa)
+                  </span>
+                </div>
+                <p className="text-gray-600 ml-6">
+                  Esta tarea corresponde a una recepción de mercancía. Verifica los productos recibidos antes de ubicarlos.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Detalles de Tarea */}
-          {tarea.detalle_tareas && tarea.detalle_tareas.length > 0 && (
+          {(tarea.detalles || tarea.detalle_tareas) && (tarea.detalles?.length > 0 || tarea.detalle_tareas?.length > 0) && (
             <div>
               <h4 className="text-md font-semibold text-gray-900 mb-3">Detalles de la Tarea</h4>
               <div className="space-y-3">
-                {tarea.detalle_tareas.map((detalle, idx) => (
+                {(tarea.detalles || tarea.detalle_tareas || []).map((detalle, idx) => (
                   <div key={idx} className="border rounded-lg p-4 bg-gray-50">
                     <div className="grid grid-cols-2 gap-4 mb-3">
+                      <div className="flex items-center gap-2">
+                        <Package className="w-4 h-4 text-gray-500" />
+                        <span className="text-sm text-gray-600">Producto:</span>
+                        <span className="font-medium text-gray-900">
+                          {detalle.producto?.nombre || detalle.lote?.producto?.nombre || 'N/A'}
+                        </span>
+                        {detalle.producto?.sku && (
+                          <span className="text-xs text-gray-500">({detalle.producto.sku})</span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-2">
                         <Package className="w-4 h-4 text-gray-500" />
                         <span className="text-sm text-gray-600">Lote:</span>
@@ -137,13 +196,15 @@ export default function TareaDetailModal({ isOpen, onClose, tareaId }) {
                           {detalle.lote?.lote_codigo || 'N/A'}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-gray-500" />
-                        <span className="text-sm text-gray-600">Ubicación Origen:</span>
-                        <span className="font-medium text-gray-900">
-                          {detalle.ubicacion_origen?.codigo || 'N/A'}
-                        </span>
-                      </div>
+                      {(detalle.ubicacion_origen || tarea.tipo_tarea === 'PUTAWAY') && (
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-gray-500" />
+                          <span className="text-sm text-gray-600">Ubicación Origen:</span>
+                          <span className="font-medium text-gray-900">
+                            {detalle.ubicacion_origen?.codigo || (tarea.tipo_tarea === 'PUTAWAY' ? 'RECEPCIÓN' : 'N/A')}
+                          </span>
+                        </div>
+                      )}
                       {detalle.ubicacion_destino && (
                         <div className="flex items-center gap-2">
                           <MapPin className="w-4 h-4 text-gray-500" />
@@ -161,10 +222,10 @@ export default function TareaDetailModal({ isOpen, onClose, tareaId }) {
                         </span>
                       </div>
                     </div>
-                    {detalle.lote?.producto && (
+                    {(detalle.lote?.producto || detalle.producto) && (
                       <div className="mt-2 pt-3 border-t">
                         <p className="text-sm text-gray-600">
-                          <span className="font-medium">Producto:</span> {detalle.lote.producto.nombre} ({detalle.lote.producto.sku})
+                          <span className="font-medium">Producto:</span> {detalle.lote?.producto?.nombre || detalle.producto?.nombre} ({detalle.lote?.producto?.sku || detalle.producto?.sku})
                         </p>
                       </div>
                     )}
@@ -178,20 +239,10 @@ export default function TareaDetailModal({ isOpen, onClose, tareaId }) {
           <div className="flex justify-end gap-3 pt-4 border-t">
             <button
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
             >
               Cerrar
             </button>
-            {tarea.estado === 'CREADA' && (
-              <button className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
-                Iniciar Tarea
-              </button>
-            )}
-            {tarea.estado === 'EN_CURSO' && (
-              <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                Completar Tarea
-              </button>
-            )}
           </div>
         </div>
       ) : (

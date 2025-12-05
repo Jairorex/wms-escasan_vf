@@ -19,8 +19,9 @@ export default function LoteDetailModal({ isOpen, onClose, loteId }) {
   })
 
   const isExpired = lote?.fecha_caducidad && new Date(lote.fecha_caducidad) < new Date()
-  const isExpiringSoon = lote?.fecha_caducidad && {
-    days: Math.ceil((new Date(lote.fecha_caducidad) - new Date()) / (1000 * 60 * 60 * 24))
+  const daysUntilExpiration = lote?.fecha_caducidad ? Math.floor((new Date(lote.fecha_caducidad) - new Date()) / (1000 * 60 * 60 * 24)) : null
+  const isExpiringSoon = daysUntilExpiration !== null && daysUntilExpiration > 0 && {
+    days: daysUntilExpiration
   }
 
   return (
@@ -107,12 +108,12 @@ export default function LoteDetailModal({ isOpen, onClose, loteId }) {
                   {isExpired && (
                     <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800 flex items-center gap-1">
                       <AlertTriangle className="w-3 h-3" />
-                      Vencido
+                      Ya se venció
                     </span>
                   )}
                   {!isExpired && isExpiringSoon && isExpiringSoon.days <= 30 && (
                     <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
-                      Vence en {isExpiringSoon.days} días
+                      Vence en {isExpiringSoon.days} {isExpiringSoon.days === 1 ? 'día' : 'días'}
                     </span>
                   )}
                 </div>
@@ -132,7 +133,7 @@ export default function LoteDetailModal({ isOpen, onClose, loteId }) {
           <div className="flex justify-end gap-3 pt-4 border-t">
             <button
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
             >
               Cerrar
             </button>

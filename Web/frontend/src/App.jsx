@@ -6,8 +6,10 @@ import Layout from './components/Layout/Layout'
 import Dashboard from './pages/Dashboard/Dashboard'
 import Tareas from './pages/Tareas/Tareas'
 import Picking from './pages/Picking/Picking'
+import PickingEjecucion from './pages/Picking/PickingEjecucion'
 import Packing from './pages/Packing/Packing'
-import Movimiento from './pages/Movimiento/Movimiento'
+import PackingEjecucion from './pages/Packing/PackingEjecucion'
+import PutawayEjecucion from './pages/Putaway/PutawayEjecucion'
 import Inventario from './pages/Inventario/Inventario'
 import Recepcion from './pages/Recepcion/Recepcion'
 import Alertas from './pages/Alertas/Alertas'
@@ -17,7 +19,14 @@ import Lotes from './pages/Catalogos/Lotes'
 import Usuarios from './pages/Catalogos/Usuarios'
 import Estadisticas from './pages/Estadisticas/Estadisticas'
 import Login from './pages/Login/Login'
-import ConnectionTest from './components/ConnectionTest'
+// Nuevos módulos WMS v2.0
+import Subbodegas from './pages/Subbodegas/Subbodegas'
+import Reabastecimiento from './pages/Reabastecimiento/Reabastecimiento'
+// Módulos por rol
+import RecepcionCadenaFria from './pages/RecepcionCadenaFria/RecepcionCadenaFria'
+import ControlTemperatura from './pages/ControlTemperatura/ControlTemperatura'
+import Etiquetas from './pages/Etiquetas/Etiquetas'
+import Reportes from './pages/Reportes/Reportes'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -60,12 +69,22 @@ function AppRoutes() {
           <Route index element={<Dashboard />} />
           <Route path="tareas" element={<Tareas />} />
           <Route path="picking" element={<Picking />} />
+          <Route path="picking/ejecucion/:tareaId" element={<PickingEjecucion />} />
           <Route path="packing" element={<Packing />} />
-          <Route path="movimiento" element={<Movimiento />} />
+          <Route path="packing/ejecucion/:tareaId" element={<PackingEjecucion />} />
+          <Route path="putaway/ejecucion/:tareaId" element={<PutawayEjecucion />} />
           <Route path="inventario" element={<Inventario />} />
           <Route path="recepcion" element={<Recepcion />} />
           <Route path="alertas" element={<Alertas />} />
           <Route path="estadisticas" element={<Estadisticas />} />
+          {/* Nuevos módulos WMS v2.0 */}
+          <Route path="subbodegas" element={<Subbodegas />} />
+          <Route path="reabastecimiento" element={<Reabastecimiento />} />
+          {/* Módulos por rol */}
+          <Route path="recepcion-fria" element={<RecepcionCadenaFria />} />
+          <Route path="control-temperatura" element={<ControlTemperatura />} />
+          <Route path="etiquetas" element={<Etiquetas />} />
+          <Route path="reportes" element={<Reportes />} />
           <Route path="catalogos">
             <Route path="productos" element={<Productos />} />
             <Route path="ubicaciones" element={<Ubicaciones />} />
@@ -84,7 +103,6 @@ function App() {
         <AuthProvider>
           <Router>
             <AppRoutes />
-            <ConnectionTest />
           </Router>
         </AuthProvider>
       </NotificationProvider>

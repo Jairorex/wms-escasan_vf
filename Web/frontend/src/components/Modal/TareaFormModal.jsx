@@ -261,14 +261,14 @@ export default function TareaFormModal({ isOpen, onClose, tarea = null }) {
                     <button
                       type="button"
                       onClick={handleClose}
-                      className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                      className="px-4 py-2 bg-cancel-500 text-white rounded-md text-sm font-medium hover:bg-cancel-600"
                     >
                       Cancelar
                     </button>
                     <button
                       type="submit"
                       disabled={mutation.isPending}
-                      className="px-4 py-2 bg-primary-600 text-white rounded-md text-sm font-medium hover:bg-primary-700 disabled:opacity-50"
+                      className="px-4 py-2 bg-confirm-500 text-white rounded-md text-sm font-medium hover:bg-confirm-600 disabled:opacity-50"
                     >
                       {mutation.isPending ? 'Guardando...' : isEdit ? 'Actualizar' : 'Crear Tarea'}
                     </button>

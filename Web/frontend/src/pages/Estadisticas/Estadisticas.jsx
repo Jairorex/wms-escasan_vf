@@ -192,7 +192,7 @@ export default function Estadisticas() {
                       <p className="text-sm text-gray-600">{supervisor.usuario} - {supervisor.email}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl font-bold text-primary-600">{supervisor.operarios_count}</p>
+                      <p className="text-2xl font-bold text-escasan-green-600">{supervisor.operarios_count}</p>
                       <p className="text-xs text-gray-500">Operarios</p>
                     </div>
                   </div>

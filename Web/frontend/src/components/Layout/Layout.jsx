@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { 
   LayoutDashboard, 
@@ -14,17 +15,31 @@ import {
   ShoppingCart,
   Package2,
   Move,
-  BarChart3
+  BarChart3,
+  Warehouse,
+  RefreshCw,
+  Thermometer,
+  Snowflake,
+  FileText,
+  Barcode,
+  Menu,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useNotification } from '../../contexts/NotificationContext'
 
 export default function Layout() {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
   const { user, logout } = useAuth()
   const { info } = useNotification()
-
+  
+  const toggleSidebar = () => {
+    setSidebarCollapsed(!sidebarCollapsed)
+  }
+  
   const handleLogout = async () => {
     await logout()
     info('Sesión cerrada exitosamente')
@@ -34,42 +49,98 @@ export default function Layout() {
   // Determinar navegación según rol
   // El rol puede venir como string o como objeto con propiedad nombre
   const userRol = typeof user?.rol === 'string' ? user.rol : user?.rol?.nombre
-  const isAdmin = userRol?.toLowerCase() === 'administrador'
-  const isSupervisor = userRol?.toLowerCase() === 'supervisor'
-  const isOperario = userRol?.toLowerCase() === 'operario'
+  const rolNormalizado = userRol?.toLowerCase()?.normalize("NFD").replace(/[\u0300-\u036f]/g, "")?.trim()
+  
+  // Debug: mostrar el rol en consola para verificar
+  console.log('🔍 Rol usuario:', { original: userRol, normalizado: rolNormalizado, user })
+  
+  // Roles del sistema - usando includes para mayor flexibilidad
+  const isAdmin = rolNormalizado === 'administrador' || rolNormalizado?.includes('admin')
+  const isSupervisor = rolNormalizado === 'supervisor' && !rolNormalizado?.includes('inventario')
+  const isSupervisorInventario = rolNormalizado?.includes('supervisor') && rolNormalizado?.includes('inventario')
+  const isOperario = rolNormalizado === 'operario'
+  const isRecepcionista = rolNormalizado === 'recepcionista' || rolNormalizado?.includes('recepcion')
+  const isOperarioCadenaFria = rolNormalizado?.includes('cadena') || rolNormalizado?.includes('fria') || rolNormalizado?.includes('frio')
+  const isOperarioPicking = rolNormalizado?.includes('picking')
 
-  const navigation = [
-    { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-    { name: 'Tareas', href: '/tareas', icon: ClipboardList },
-    // Pestañas de operaciones (solo para operarios y supervisores)
-    ...((isAdmin||isOperario || isSupervisor) ? [
-      { name: 'Picking', href: '/picking', icon: ShoppingCart },
-      { name: 'Packing', href: '/packing', icon: Package2 },
-      { name: 'Movimiento', href: '/movimiento', icon: Move },
-    ] : []),
-    // Solo admin y supervisor ven inventario y recepción
-    ...((isAdmin || isSupervisor) ? [
-      { name: 'Inventario', href: '/inventario', icon: Package },
-      { name: 'Recepción', href: '/recepcion', icon: Inbox },
-    ] : []),
-    { name: 'Alertas', href: '/alertas', icon: Bell },
+  // Construir navegación según rol
+  const getNavigation = () => {
+    // Dashboard siempre visible
+    const nav = [
+      { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+    ]
+
+    // Tareas para todos los roles operativos
+    if (isAdmin || isSupervisor || isSupervisorInventario || isOperario || isOperarioPicking || isOperarioCadenaFria || isRecepcionista) {
+      nav.push({ name: 'Tareas', href: '/tareas', icon: ClipboardList })
+    }
+
+    // === RECEPCIONISTA ===
+    // Recepción, validación, generación de códigos
+    // Solo Recepcionista y Admin pueden hacer recepciones (NO supervisores)
+    if (isRecepcionista || isAdmin) {
+      nav.push({ name: 'Recepción Estándar', href: '/recepcion', icon: Inbox })
+      nav.push({ name: 'Generar Etiquetas', href: '/etiquetas', icon: Barcode })
+    }
+
+    // === OPERARIO CADENA FRÍA ===
+    // Recepción fría, control de temperatura, alertas
+    if (isOperarioCadenaFria || isAdmin || isSupervisor) {
+      nav.push({ name: 'Recepción Cadena Fría', href: '/recepcion-fria', icon: Snowflake })
+      nav.push({ name: 'Control Temperatura', href: '/control-temperatura', icon: Thermometer })
+    }
+
+    // === OPERARIO PICKING ===
+    // Picking, reabastecimiento, packing
+    // Operarios pueden ver picking pero NO crear (solo Admin puede crear)
+    if (isOperarioPicking || isOperario || isAdmin || isSupervisor) {
+      nav.push({ name: 'Picking', href: '/picking', icon: ShoppingCart })
+      nav.push({ name: 'Packing', href: '/packing', icon: Package2 })
+    }
+
+    // Reabastecimiento para operarios de picking y supervisores
+    if (isOperarioPicking || isAdmin || isSupervisor || isSupervisorInventario) {
+      nav.push({ name: 'Reabastecimiento', href: '/reabastecimiento', icon: RefreshCw })
+    }
+
+    // === SUPERVISOR INVENTARIO ===
+    // Inventario, reportes, control de stock
+    if (isSupervisorInventario || isAdmin || isSupervisor) {
+      nav.push({ name: 'Inventario', href: '/inventario', icon: Package })
+      nav.push({ name: 'Subbodegas', href: '/subbodegas', icon: Warehouse })
+      nav.push({ name: 'Reportes', href: '/reportes', icon: FileText })
+    }
+
+    // Alertas para todos excepto operarios básicos
+    if (isAdmin || isSupervisor || isSupervisorInventario || isOperarioCadenaFria || isRecepcionista) {
+      nav.push({ name: 'Alertas', href: '/alertas', icon: Bell })
+    }
+
+    // Estadísticas para supervisores y admin
+    if (isAdmin || isSupervisor || isSupervisorInventario) {
+      nav.push({ name: 'Estadísticas', href: '/estadisticas', icon: BarChart3 })
+    }
+
+    // === ADMINISTRADOR ===
     // Catálogos solo para admin
-    ...(isAdmin ? [{
-      name: 'Catálogos', 
-      href: '/catalogos', 
-      icon: Database,
-      children: [
-        { name: 'Productos', href: '/catalogos/productos', icon: Package },
-        { name: 'Ubicaciones', href: '/catalogos/ubicaciones', icon: MapPin },
-        { name: 'Lotes', href: '/catalogos/lotes', icon: Boxes },
-        { name: 'Usuarios', href: '/catalogos/usuarios', icon: Users },
-      ]
-    }] : []),
-    // Estadísticas de supervisores (solo admin y supervisor)
-    ...((isAdmin || isSupervisor) ? [
-      { name: 'Estadísticas', href: '/estadisticas', icon: BarChart3 },
-    ] : []),
-  ]
+    if (isAdmin) {
+      nav.push({
+        name: 'Catálogos', 
+        href: '/catalogos', 
+        icon: Database,
+        children: [
+          { name: 'Productos', href: '/catalogos/productos', icon: Package },
+          { name: 'Ubicaciones', href: '/catalogos/ubicaciones', icon: MapPin },
+          { name: 'Lotes', href: '/catalogos/lotes', icon: Boxes },
+          { name: 'Usuarios', href: '/catalogos/usuarios', icon: Users },
+        ]
+      })
+    }
+
+    return nav
+  }
+
+  const navigation = getNavigation()
 
   const isActive = (path) => {
     if (path === '/') {
@@ -81,15 +152,30 @@ export default function Layout() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
-      <div className="fixed inset-y-0 left-0 w-64 bg-white shadow-lg">
+      <div className={`fixed inset-y-0 left-0 bg-escasan-green-500 shadow-lg transition-all duration-300 z-50 ${
+        sidebarCollapsed ? 'w-20' : 'w-64'
+      }`}>
         <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="flex items-center justify-center h-16 px-4 border-b">
-            <h1 className="text-2xl font-bold text-primary-600">WMS</h1>
+          {/* Logo y Botón de Toggle */}
+          <div className="flex items-center justify-between h-16 px-4 border-b border-escasan-green-600">
+            {!sidebarCollapsed && (
+              <h1 className="text-2xl font-bold text-white">WMS ESCASAN</h1>
+            )}
+            <button
+              onClick={toggleSidebar}
+              className="p-2 rounded-lg hover:bg-escasan-green-600 transition-colors text-white"
+              title={sidebarCollapsed ? 'Expandir menú' : 'Colapsar menú'}
+            >
+              {sidebarCollapsed ? (
+                <ChevronRight className="w-5 h-5" />
+              ) : (
+                <ChevronLeft className="w-5 h-5" />
+              )}
+            </button>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+          <nav className="flex-1 px-2 py-6 space-y-2 overflow-y-auto">
             {navigation.map((item) => {
               const Icon = item.icon
               const active = isActive(item.href)
@@ -99,34 +185,39 @@ export default function Layout() {
                 const isCatalogosActive = item.children.some(child => isActive(child.href))
                 return (
                   <div key={item.name} className="space-y-1">
-                    <div className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg ${
-                      isCatalogosActive
-                        ? 'bg-primary-50 text-primary-700'
-                        : 'text-gray-700'
-                    }`}>
-                      <Icon className="w-5 h-5 mr-3" />
-                      {item.name}
+                    <div 
+                      className={`flex items-center ${sidebarCollapsed ? 'justify-center px-2' : 'px-4'} py-3 text-sm font-medium rounded-lg transition-colors ${
+                        isCatalogosActive
+                          ? 'bg-escasan-orange-500 text-white'
+                          : 'text-white hover:bg-escasan-green-600'
+                      }`}
+                      title={sidebarCollapsed ? item.name : ''}
+                    >
+                      <Icon className={`w-5 h-5 ${sidebarCollapsed ? '' : 'mr-3'}`} />
+                      {!sidebarCollapsed && <span>{item.name}</span>}
                     </div>
-                    <div className="ml-8 space-y-1">
-                      {item.children.map((child) => {
-                        const ChildIcon = child.icon
-                        const childActive = isActive(child.href)
-                        return (
-                          <Link
-                            key={child.name}
-                            to={child.href}
-                            className={`flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
-                              childActive
-                                ? 'bg-primary-50 text-primary-700'
-                                : 'text-gray-600 hover:bg-gray-100'
-                            }`}
-                          >
-                            <ChildIcon className="w-4 h-4 mr-2" />
-                            {child.name}
-                          </Link>
-                        )
-                      })}
-                    </div>
+                    {!sidebarCollapsed && (
+                      <div className="ml-8 space-y-1">
+                        {item.children.map((child) => {
+                          const ChildIcon = child.icon
+                          const childActive = isActive(child.href)
+                          return (
+                            <Link
+                              key={child.name}
+                              to={child.href}
+                              className={`flex items-center px-4 py-2 text-sm rounded-lg transition-colors ${
+                                childActive
+                                  ? 'bg-escasan-orange-500 text-white'
+                                  : 'text-white hover:bg-escasan-orange-500'
+                              }`}
+                            >
+                              <ChildIcon className="w-4 h-4 mr-2" />
+                              {child.name}
+                            </Link>
+                          )
+                        })}
+                      </div>
+                    )}
                   </div>
                 )
               }
@@ -135,34 +226,36 @@ export default function Layout() {
                 <Link
                   key={item.name}
                   to={item.href}
-                  className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                  className={`flex items-center ${sidebarCollapsed ? 'justify-center px-2' : 'px-4'} py-3 text-sm font-medium rounded-lg transition-colors ${
                     active
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-escasan-orange-500 text-white'
+                      : 'text-white hover:bg-escasan-orange-500'
                   }`}
+                  title={sidebarCollapsed ? item.name : ''}
                 >
-                  <Icon className="w-5 h-5 mr-3" />
-                  {item.name}
+                  <Icon className={`w-5 h-5 ${sidebarCollapsed ? '' : 'mr-3'}`} />
+                  {!sidebarCollapsed && <span>{item.name}</span>}
                 </Link>
               )
             })}
           </nav>
 
           {/* Footer */}
-          <div className="p-4 border-t">
+          <div className={`p-4 border-t border-escasan-green-600 ${sidebarCollapsed ? 'px-2' : ''}`}>
             <button 
               onClick={handleLogout}
-              className="flex items-center w-full px-4 py-2 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+              className={`flex items-center w-full ${sidebarCollapsed ? 'justify-center px-2' : 'px-4'} py-2 text-sm font-medium text-white rounded-lg hover:bg-cancel-500 transition-colors`}
+              title={sidebarCollapsed ? 'Cerrar Sesión' : ''}
             >
-              <LogOut className="w-5 h-5 mr-3" />
-              Cerrar Sesión
+              <LogOut className={`w-5 h-5 ${sidebarCollapsed ? '' : 'mr-3'}`} />
+              {!sidebarCollapsed && <span>Cerrar Sesión</span>}
             </button>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="pl-64">
+      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'pl-20' : 'pl-64'}`}>
         {/* Header */}
         <header className="bg-white shadow-sm border-b">
           <div className="px-6 py-4 flex items-center justify-between">
@@ -177,7 +270,7 @@ export default function Layout() {
                   <User className="w-4 h-4" />
                   <span>{user.nombre || user.usuario}</span>
                   {userRol && (
-                    <span className="px-2 py-1 text-xs bg-primary-100 text-primary-700 rounded-full">
+                    <span className="px-2 py-1 text-xs bg-escasan-green-100 text-escasan-green-800 rounded-full">
                       {userRol}
                     </span>
                   )}
