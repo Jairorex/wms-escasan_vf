@@ -44,8 +44,10 @@ php artisan tinker --execute="DB::connection()->getPdo();" 2>&1 | head -5 || ech
 # Configurar APP_DEBUG para producción (mostrar errores en logs)
 if [ "$APP_ENV" = "production" ]; then
     echo "🔧 Configurando para producción..."
-    # Asegurar que los logs estén habilitados
-    php artisan config:cache || true
+    # NO cachear configuración para que las variables de entorno se lean dinámicamente
+    # Esto es importante para CORS y otras configuraciones que dependen de ENV
+    echo "⚠️  NO se cacheará la configuración para permitir cambios dinámicos de ENV"
+    # php artisan config:cache || true  # Comentado para permitir lectura dinámica de ENV
 fi
 
 # Iniciar servidor
