@@ -73,7 +73,7 @@ class HandleCors
         
         // Si es una petición OPTIONS (preflight), responder inmediatamente con headers CORS
         if ($request->getMethod() === 'OPTIONS') {
-            $response = response('', 204);
+            $response = response('', 200);
             
             // Agregar headers de CORS SIEMPRE para OPTIONS (preflight) si el origen está permitido
             if ($isAllowed && $allowedOrigin) {
