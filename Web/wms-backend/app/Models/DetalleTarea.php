@@ -13,6 +13,7 @@ class DetalleTarea extends Model
     protected $fillable = [
         'tarea_id',
         'lote_id',
+        'producto_id',
         'cantidad_solicitada',
         'cantidad_completada',
         'ubicacion_origen_id',

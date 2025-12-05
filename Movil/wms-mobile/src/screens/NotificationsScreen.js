@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator, SafeAreaView, Alert } from 'react-native';
 import { Bell, AlertCircle, AlertTriangle, Info, CheckCircle } from 'lucide-react-native';
 import api from '../api/axiosClient';
 import Colors from '../constants/colors';
@@ -16,14 +16,43 @@ export default function NotificationsScreen() {
 
   const fetchAlertas = async () => {
     try {
+      setLoading(true);
       const params = {};
       if (filter !== 'all') {
         params.estado = filter;
       }
+      console.log('📢 Cargando alertas con filtro:', filter);
       const response = await api.get('/alertas', { params });
-      setAlertas(response.data.data || []);
+      console.log('📢 Respuesta de alertas:', response.data);
+      
+      // Manejar diferentes formatos de respuesta
+      let alertasData = [];
+      if (response.data) {
+        if (response.data.success && Array.isArray(response.data.data)) {
+          alertasData = response.data.data;
+        } else if (Array.isArray(response.data.data)) {
+          alertasData = response.data.data;
+        } else if (Array.isArray(response.data)) {
+          alertasData = response.data;
+        }
+      }
+      
+      console.log('📢 Alertas procesadas:', alertasData.length);
+      setAlertas(alertasData);
     } catch (error) {
-      console.error('Error al cargar alertas:', error);
+      console.error('❌ Error al cargar alertas:', error);
+      console.error('❌ Detalles del error:', error.response?.data || error.message);
+      
+      // Mostrar mensaje de error al usuario
+      if (error.response?.status === 401) {
+        Alert.alert('Error de autenticación', 'Por favor, inicia sesión nuevamente');
+      } else if (error.response?.status >= 500) {
+        Alert.alert('Error del servidor', 'No se pudieron cargar las notificaciones. Intenta más tarde.');
+      } else {
+        Alert.alert('Error', error.response?.data?.message || 'No se pudieron cargar las notificaciones');
+      }
+      
+      setAlertas([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
