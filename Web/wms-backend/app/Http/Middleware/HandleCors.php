@@ -24,11 +24,13 @@ class HandleCors
         
         // Verificar si el origen está permitido
         $isAllowed = false;
+        $allowedOrigin = null;
         
         if ($origin) {
             // Verificar en lista directa
             if (in_array($origin, $allowedOrigins)) {
                 $isAllowed = true;
+                $allowedOrigin = $origin;
             }
             
             // Verificar patrones (regex)
@@ -39,25 +41,43 @@ class HandleCors
                     $regex = '#^' . str_replace(['\\', '*'], ['', '.*'], $pattern) . '$#';
                     if (preg_match($regex, $origin)) {
                         $isAllowed = true;
+                        $allowedOrigin = $origin;
                         break;
                     }
                 }
             }
         }
         
-        // Si es una petición OPTIONS (preflight), responder inmediatamente
+        // Si es una petición OPTIONS (preflight), responder inmediatamente con headers CORS
         if ($request->getMethod() === 'OPTIONS') {
-            $response = response('', 200);
-        } else {
-            $response = $next($request);
+            $response = response('', 204);
+            
+            // Agregar headers de CORS SIEMPRE para OPTIONS (preflight)
+            if ($isAllowed && $allowedOrigin) {
+                $response->headers->set('Access-Control-Allow-Origin', $allowedOrigin);
+                $response->headers->set('Access-Control-Allow-Methods', implode(', ', config('cors.allowed_methods', ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'])));
+                $response->headers->set('Access-Control-Allow-Headers', implode(', ', config('cors.allowed_headers', ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'])));
+                $response->headers->set('Access-Control-Max-Age', (string)config('cors.max_age', 86400));
+                
+                if (config('cors.supports_credentials', false)) {
+                    $response->headers->set('Access-Control-Allow-Credentials', 'true');
+                }
+            } else {
+                // Si no está permitido, aún así responder (pero sin headers CORS)
+                // Esto permite que el navegador muestre el error correctamente
+            }
+            
+            return $response;
         }
         
+        // Para otras peticiones, continuar y agregar headers CORS
+        $response = $next($request);
+        
         // Agregar headers de CORS si el origen está permitido
-        if ($isAllowed && $origin) {
-            $response->headers->set('Access-Control-Allow-Origin', $origin);
-            $response->headers->set('Access-Control-Allow-Methods', implode(', ', config('cors.allowed_methods', ['*'])));
-            $response->headers->set('Access-Control-Allow-Headers', implode(', ', config('cors.allowed_headers', ['*'])));
-            $response->headers->set('Access-Control-Max-Age', config('cors.max_age', 0));
+        if ($isAllowed && $allowedOrigin) {
+            $response->headers->set('Access-Control-Allow-Origin', $allowedOrigin);
+            $response->headers->set('Access-Control-Allow-Methods', implode(', ', config('cors.allowed_methods', ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'])));
+            $response->headers->set('Access-Control-Allow-Headers', implode(', ', config('cors.allowed_headers', ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'])));
             
             if (config('cors.supports_credentials', false)) {
                 $response->headers->set('Access-Control-Allow-Credentials', 'true');
