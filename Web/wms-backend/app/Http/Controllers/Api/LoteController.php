@@ -9,11 +9,30 @@ use Illuminate\Support\Facades\Validator;
 
 class LoteController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         try {
-            // Traemos los lotes con su producto relacionado para mostrar el nombre en la tabla
-            $lotes = Lote::with('producto')->orderBy('id', 'desc')->get();
+            $query = Lote::with('producto');
+
+            // Filtro de búsqueda
+            if ($request->has('search') && !empty($request->search)) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('lote_codigo', 'like', "%{$search}%")
+                      ->orWhereHas('producto', function($q) use ($search) {
+                          $q->where('nombre', 'like', "%{$search}%")
+                            ->orWhere('sku', 'like', "%{$search}%");
+                      });
+                });
+            }
+
+            // Filtro por producto
+            if ($request->has('producto_id')) {
+                $query->where('producto_id', $request->producto_id);
+            }
+
+            $lotes = $query->orderBy('id', 'desc')->get();
+            
             return response()->json([
                 'success' => true,
                 'data' => $lotes
@@ -115,6 +134,55 @@ class LoteController extends Controller
             return response()->json(['success' => true, 'message' => 'Lote eliminado'], 200);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'Error al eliminar'], 500);
+        }
+    }
+
+    /**
+     * Generar código de barras para un lote
+     */
+    public function generateBarcode($id)
+    {
+        try {
+            $lote = Lote::with('producto')->find($id);
+            
+            if (!$lote) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Lote no encontrado'
+                ], 404);
+            }
+
+            // El código de barras será basado en el código del lote
+            $codigoBarras = $lote->lote_codigo;
+            
+            // Si el producto tiene SKU, podemos incluirlo
+            if ($lote->producto && $lote->producto->sku) {
+                $codigoBarras = $lote->producto->sku . '-' . $lote->lote_codigo;
+            }
+
+            // Actualizar el lote con el código de barras generado (si existe el campo)
+            // $lote->codigo_barras = $codigoBarras;
+            // $lote->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Código de barras generado',
+                'data' => [
+                    'lote_id' => $lote->id,
+                    'codigo_lote' => $lote->lote_codigo,
+                    'codigo_barras' => $codigoBarras,
+                    'producto' => $lote->producto?->nombre,
+                    'sku' => $lote->producto?->sku,
+                    'fecha_caducidad' => $lote->fecha_caducidad
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al generar código de barras',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 }

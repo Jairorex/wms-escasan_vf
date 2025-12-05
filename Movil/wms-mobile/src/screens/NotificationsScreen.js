@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator, SafeAreaView } from 'react-native';
 import { Bell, AlertCircle, AlertTriangle, Info, CheckCircle } from 'lucide-react-native';
 import api from '../api/axiosClient';
+import Colors from '../constants/colors';
 
 export default function NotificationsScreen() {
   const [alertas, setAlertas] = useState([]);
@@ -98,14 +99,16 @@ export default function NotificationsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007bff" />
-      </View>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={Colors.escasan.green.main} />
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Filtros */}
       <View style={styles.filtersContainer}>
         <TouchableOpacity
@@ -142,7 +145,7 @@ export default function NotificationsScreen() {
           </View>
         }
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -151,14 +154,16 @@ const styles = StyleSheet.create({
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   filtersContainer: {
     flexDirection: 'row',
-    padding: 10,
+    padding: 16,
+    paddingTop: 20,
+    marginTop: 10,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
   filterButton: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 10,
     paddingHorizontal: 12,
     marginHorizontal: 4,
     borderRadius: 8,
@@ -166,15 +171,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   filterButtonActive: {
-    backgroundColor: '#007bff',
+    backgroundColor: Colors.escasan.green.main,
   },
   filterText: {
     fontSize: 12,
     color: '#666',
-    fontWeight: '500',
+    fontWeight: '600',
   },
   filterTextActive: {
     color: '#fff',
+    fontWeight: 'bold',
   },
   listContainer: { padding: 10 },
   alertaCard: {

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator, SafeAreaView } from 'react-native';
 import { ClipboardList, Clock, CheckCircle, AlertCircle } from 'lucide-react-native';
 import api from '../api/axiosClient';
 import { AuthContext } from '../context/AuthContext';
+import Colors from '../constants/colors';
 
 export default function TasksListScreen({ navigation }) {
   const { userInfo } = useContext(AuthContext);
@@ -45,11 +46,11 @@ export default function TasksListScreen({ navigation }) {
   const getEstadoColor = (estado) => {
     switch (estado) {
       case 'CREADA':
-        return '#ff9800';
+        return Colors.escasan.orange.main;
       case 'EN_CURSO':
-        return '#2196f3';
+        return Colors.confirm.main;
       case 'COMPLETADA':
-        return '#4caf50';
+        return Colors.escasan.green.main;
       default:
         return '#757575';
     }
@@ -58,11 +59,11 @@ export default function TasksListScreen({ navigation }) {
   const getEstadoIcon = (estado) => {
     switch (estado) {
       case 'CREADA':
-        return <Clock size={20} color="#ff9800" />;
+        return <Clock size={20} color={Colors.escasan.orange.main} />;
       case 'EN_CURSO':
-        return <AlertCircle size={20} color="#2196f3" />;
+        return <AlertCircle size={20} color={Colors.confirm.main} />;
       case 'COMPLETADA':
-        return <CheckCircle size={20} color="#4caf50" />;
+        return <CheckCircle size={20} color={Colors.escasan.green.main} />;
       default:
         return <ClipboardList size={20} color="#757575" />;
     }
@@ -102,14 +103,16 @@ export default function TasksListScreen({ navigation }) {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007bff" />
-      </View>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={Colors.escasan.green.main} />
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Filtros */}
       <View style={styles.filtersContainer}>
         <TouchableOpacity
@@ -152,16 +155,19 @@ export default function TasksListScreen({ navigation }) {
           </View>
         }
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f9fa' },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   filtersContainer: {
     flexDirection: 'row',
-    padding: 10,
+    padding: 16,
+    paddingTop: 20,
+    marginTop: 10,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
@@ -176,7 +182,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   filterButtonActive: {
-    backgroundColor: '#007bff',
+    backgroundColor: Colors.escasan.green.main,
   },
   filterText: {
     fontSize: 12,

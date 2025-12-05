@@ -272,25 +272,33 @@ class TaskEngineService
     }
 
     /**
-     * Crea una tarea de PUTAWAY asignando ubicación óptima
+     * Crea una tarea de PUTAWAY asignando ubicación óptima o sugerida
      * Solo crea detalles de tipo PUTAWAY
      */
-    public function createPutawayTask(int $ordenId, int $loteId, float $cantidad, ?int $usuarioId = null): Tarea
+    public function createPutawayTask(int $ordenId, int $loteId, float $cantidad, ?int $usuarioId = null, ?int $ubicacionSugeridaId = null): Tarea
     {
-        return DB::transaction(function () use ($ordenId, $loteId, $cantidad, $usuarioId) {
+        return DB::transaction(function () use ($ordenId, $loteId, $cantidad, $usuarioId, $ubicacionSugeridaId) {
             $lote = Lote::with('producto')->findOrFail($loteId);
             $producto = $lote->producto;
             $pesoTotal = ($producto->peso ?? 0) * $cantidad;
 
-            // Encontrar ubicación óptima
-            $ubicacion = $this->slottingService->findOptimalLocation($producto, $cantidad, $pesoTotal);
-
-            if (!$ubicacion) {
-                // Intentar ubicación de overflow
-                $ubicacion = $this->slottingService->findOverflowLocation($producto);
-                
+            // Si hay ubicación sugerida, usarla; si no, encontrar óptima
+            if ($ubicacionSugeridaId) {
+                $ubicacion = Ubicacion::find($ubicacionSugeridaId);
                 if (!$ubicacion) {
-                    throw new \Exception('No se encontró ubicación disponible para el producto');
+                    throw new \Exception('La ubicación sugerida no existe');
+                }
+            } else {
+                // Encontrar ubicación óptima
+                $ubicacion = $this->slottingService->findOptimalLocation($producto, $cantidad, $pesoTotal);
+
+                if (!$ubicacion) {
+                    // Intentar ubicación de overflow
+                    $ubicacion = $this->slottingService->findOverflowLocation($producto);
+                    
+                    if (!$ubicacion) {
+                        throw new \Exception('No se encontró ubicación disponible para el producto');
+                    }
                 }
             }
 
@@ -310,12 +318,13 @@ class TaskEngineService
             }
 
             // Crear tarea PUTAWAY (solo tipo PUTAWAY)
+            // Sin asignar - el supervisor la asignará después
             $tarea = Tarea::create([
                 'orden_id' => $ordenId,
                 'tipo_tarea' => 'PUTAWAY', // Solo tareas PUTAWAY
                 'estado' => 'CREADA',
                 'prioridad' => 5,
-                'asignada_a_usuario_id' => $usuarioId,
+                'asignada_a_usuario_id' => null, // Sin asignar - supervisor asignará
                 'fecha_creacion' => now()
             ]);
 
@@ -356,12 +365,13 @@ class TaskEngineService
     {
         return DB::transaction(function () use ($ordenId, $productos, $usuarioId) {
             // Crear una sola tarea PICKING
+            // Sin asignar - el supervisor la asignará después
             $tarea = Tarea::create([
                 'orden_id' => $ordenId,
                 'tipo_tarea' => 'PICK', // Solo tareas PICK
                 'estado' => 'CREADA',
                 'prioridad' => 5,
-                'asignada_a_usuario_id' => $usuarioId,
+                'asignada_a_usuario_id' => null, // Sin asignar - supervisor asignará
                 'fecha_creacion' => now()
             ]);
 

@@ -15,7 +15,7 @@ class UbicacionController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = Ubicacion::with('tipoUbicacion');
+            $query = Ubicacion::with(['tipoUbicacion', 'subbodega']);
 
             // Filtros opcionales
             if ($request->has('search')) {
@@ -25,6 +25,11 @@ class UbicacionController extends Controller
                       ->orWhere('pasillo', 'like', "%{$search}%")
                       ->orWhere('estante', 'like', "%{$search}%");
                 });
+            }
+
+            // Filtrar por subbodega
+            if ($request->has('subbodega_id') && $request->subbodega_id) {
+                $query->where('subbodega_id', $request->subbodega_id);
             }
 
             $ubicaciones = $query->get();
@@ -79,7 +84,8 @@ class UbicacionController extends Controller
                 'pasillo' => 'nullable|string',
                 'estante' => 'nullable|string',
                 'nivel' => 'nullable|string',
-                'tipo_ubicacion_id' => 'required|exists:Tipos_Ubicacion,id',
+                'tipo_ubicacion_id' => 'nullable|exists:Tipos_Ubicacion,id',
+                'subbodega_id' => 'nullable|exists:Subbodegas,id',
                 'max_peso' => 'nullable|numeric|min:0',
                 'max_cantidad' => 'nullable|integer|min:0',
             ]);
@@ -97,7 +103,7 @@ class UbicacionController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Ubicación creada exitosamente',
-                'data' => $ubicacion->load('tipoUbicacion')
+                'data' => $ubicacion->load(['tipoUbicacion', 'subbodega'])
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
@@ -127,7 +133,8 @@ class UbicacionController extends Controller
                 'pasillo' => 'nullable|string',
                 'estante' => 'nullable|string',
                 'nivel' => 'nullable|string',
-                'tipo_ubicacion_id' => 'sometimes|required|exists:Tipos_Ubicacion,id',
+                'tipo_ubicacion_id' => 'nullable|exists:Tipos_Ubicacion,id',
+                'subbodega_id' => 'nullable|exists:Subbodegas,id',
                 'max_peso' => 'nullable|numeric|min:0',
                 'max_cantidad' => 'nullable|integer|min:0',
             ]);

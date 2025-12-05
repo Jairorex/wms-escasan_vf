@@ -5,8 +5,10 @@
 
 import { Platform } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
+// Colores de ESCASAN
+const tintColorLight = '#009245'; // Verde corporativo ESCASAN
 const tintColorDark = '#fff';
+const accentColor = '#f15a29'; // Naranja corporativo ESCASAN
 
 export const Colors = {
   light: {
@@ -16,6 +18,11 @@ export const Colors = {
     icon: '#687076',
     tabIconDefault: '#687076',
     tabIconSelected: tintColorLight,
+    // Colores de ESCASAN
+    primary: '#009245',
+    accent: '#f15a29',
+    confirm: '#2196F3',
+    cancel: '#f44336',
   },
   dark: {
     text: '#ECEDEE',
@@ -24,6 +31,11 @@ export const Colors = {
     icon: '#9BA1A6',
     tabIconDefault: '#9BA1A6',
     tabIconSelected: tintColorDark,
+    // Colores de ESCASAN
+    primary: '#009245',
+    accent: '#f15a29',
+    confirm: '#2196F3',
+    cancel: '#f44336',
   },
 };
 

@@ -53,9 +53,9 @@ class CheckExpiryAlerts extends Command
                 $nivelRiesgo = 'ALTO';
                 $descripcion = "El lote {$lote->lote_codigo} del producto {$lote->producto->nombre} ha vencido el {$lote->fecha_caducidad->format('d/m/Y')}. Stock disponible: {$inventarioTotal}";
             } else {
-                $diasRestantes = $lote->fecha_caducidad ? Carbon::now()->diffInDays($lote->fecha_caducidad) : 0;
+                $diasRestantes = $lote->fecha_caducidad ? (int) Carbon::now()->diffInDays($lote->fecha_caducidad) : 0;
                 $nivelRiesgo = $diasRestantes <= 7 ? 'ALTO' : ($diasRestantes <= 15 ? 'MEDIO' : 'BAJO');
-                $descripcion = "El lote {$lote->lote_codigo} del producto {$lote->producto->nombre} vence el {$lote->fecha_caducidad->format('d/m/Y')} ({$diasRestantes} días restantes). Stock disponible: {$inventarioTotal}";
+                $descripcion = "El lote {$lote->lote_codigo} del producto {$lote->producto->nombre} vence el {$lote->fecha_caducidad->format('d/m/Y')} ({$diasRestantes} " . ($diasRestantes === 1 ? 'día' : 'días') . " restantes). Stock disponible: {$inventarioTotal}";
             }
 
             if ($inventarioTotal > 0) {

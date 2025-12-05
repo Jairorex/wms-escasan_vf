@@ -29,10 +29,13 @@ export default function TaskDetailScreen({ route, navigation }) {
     setActionLoading(true);
     try {
       await api.post(`/tasks/${taskId}/start`);
-      Alert.alert('Éxito', 'Tarea iniciada');
-      fetchTaskDetail();
+      // Navegar a la pantalla de ejecución con checking
+      navigation.navigate('TaskExecution', {
+        taskId: taskId,
+        taskType: task?.tipo_tarea || 'PICK'
+      });
     } catch (error) {
-      Alert.alert('Error', 'No se pudo iniciar la tarea');
+      Alert.alert('Error', error.response?.data?.message || 'No se pudo iniciar la tarea');
     } finally {
       setActionLoading(false);
     }

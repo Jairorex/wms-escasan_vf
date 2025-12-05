@@ -8,15 +8,20 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Movimiento extends Model
 {
     protected $table = 'Movimientos';
+    public $timestamps = false;
     
     protected $fillable = [
+        'producto_id',
         'lote_id',
         'cantidad',
+        'tipo_movimiento',
         'ubicacion_origen_id',
         'ubicacion_destino_id',
         'usuario_id',
         'tarea_id',
-        'fecha_movimiento'
+        'fecha_movimiento',
+        'motivo',
+        'referencia'
     ];
 
     protected $casts = [
@@ -24,10 +29,9 @@ class Movimiento extends Model
         'fecha_movimiento' => 'datetime'
     ];
 
-    // Producto se obtiene a través de Lote
-    public function producto()
+    public function producto(): BelongsTo
     {
-        return $this->lote->producto ?? null;
+        return $this->belongsTo(Producto::class, 'producto_id');
     }
 
     public function lote(): BelongsTo

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, RefreshControl, ActivityIndicator, SafeAreaView } from 'react-native';
 import { Package, MapPin, Search, Box } from 'lucide-react-native';
 import api from '../api/axiosClient';
+import Colors from '../constants/colors';
 
 export default function InventoryScreen({ navigation }) {
   const [inventario, setInventario] = useState([]);
@@ -75,14 +76,16 @@ export default function InventoryScreen({ navigation }) {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007bff" />
-      </View>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={Colors.escasan.green.main} />
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Búsqueda */}
       <View style={styles.searchContainer}>
         <Search size={20} color="#999" style={styles.searchIcon} />
@@ -109,7 +112,7 @@ export default function InventoryScreen({ navigation }) {
           </View>
         }
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -136,6 +139,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#fff',
     margin: 10,
+    marginTop: 20,
     paddingHorizontal: 15,
     borderRadius: 10,
     borderWidth: 1,

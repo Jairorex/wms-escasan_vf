@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Orden;
 use App\Models\Lote;
+use App\Models\Ubicacion;
 use App\Services\TaskEngineService;
 use App\Services\InventoryService;
 use Illuminate\Http\JsonResponse;
@@ -36,11 +37,17 @@ class InboundController extends Controller
         'orden_compra_id' => 'nullable|integer', // opcional
         'numero_orden' => 'nullable|string',     // se mapea a referencia_externa
         'producto_id' => 'required|integer|exists:Productos,id',
-        'codigo_lote' => 'required|string|unique:Lotes,lote_codigo',
-        'fecha_caducidad' => 'required|date',
+        'lote_id' => 'nullable|integer|exists:Lotes,id', // usar lote existente
+        'codigo_lote' => 'required_without:lote_id|string|unique:Lotes,lote_codigo',
+        'fecha_caducidad' => 'required_without:lote_id|date',
         'fecha_fabricacion' => 'nullable|date',
         'cantidad' => 'required|numeric|min:0.01',
+        'subbodega_id' => 'required|integer|exists:Subbodegas,id', // subbodega de destino
         'ubicacion_temporal_id' => 'nullable|integer|exists:Ubicaciones,id',
+        'ubicacion_sugerida_id' => 'nullable|integer|exists:Ubicaciones,id', // ubicación sugerida para putaway
+        'proveedor' => 'nullable|string|max:255',
+        'documento_proveedor' => 'nullable|string|max:100',
+        'observaciones' => 'nullable|string',
     ]);
 
     if ($validator->fails()) {
@@ -90,25 +97,62 @@ class InboundController extends Controller
 
             }
 
-            // Crear el lote
-            $lote = Lote::create([
-                'lote_codigo' => $request->input('codigo_lote'),
-                'producto_id' => $request->input('producto_id'),
-                'fecha_caducidad' => $request->input('fecha_caducidad'),
-                'fecha_fabricacion' => $request->input('fecha_fabricacion'),
-                'cantidad_original' => $request->input('cantidad', 0)
-            ]);
+            // Usar lote existente o crear nuevo
+            $loteId = $request->input('lote_id');
+            
+            if ($loteId) {
+                // Usar lote existente
+                $lote = Lote::findOrFail($loteId);
+                
+                // Validar que el lote sea del producto correcto
+                if ($lote->producto_id !== $request->input('producto_id')) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'El lote seleccionado no corresponde al producto'
+                    ], 400);
+                }
+            } else {
+                // Crear nuevo lote
+                $lote = Lote::create([
+                    'lote_codigo' => $request->input('codigo_lote'),
+                    'producto_id' => $request->input('producto_id'),
+                    'fecha_caducidad' => $request->input('fecha_caducidad'),
+                    'fecha_fabricacion' => $request->input('fecha_fabricacion'),
+                    'cantidad_original' => $request->input('cantidad', 0)
+                ]);
+            }
 
             $cantidad = $request->input('cantidad');
             $usuarioId = $request->user()?->id;
+            $subbodegaId = $request->input('subbodega_id');
             $ubicacionTemporalId = $request->input('ubicacion_temporal_id');
+            $ubicacionSugeridaId = $request->input('ubicacion_sugerida_id');
 
-            // Crear tarea PUTAWAY
+            // Si no se especificó ubicación, buscar una disponible en la subbodega
+            if (!$ubicacionSugeridaId && $subbodegaId) {
+                $ubicacionEnSubbodega = Ubicacion::where('subbodega_id', $subbodegaId)
+                    ->first();
+                
+                if ($ubicacionEnSubbodega) {
+                    $ubicacionSugeridaId = $ubicacionEnSubbodega->id;
+                }
+            }
+
+            // Verificar que tenemos una ubicación válida
+            if (!$ubicacionSugeridaId && !$ubicacionTemporalId) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'No se encontró ubicación disponible en la subbodega seleccionada. Por favor, crea una ubicación primero.'
+                ], 400);
+            }
+
+            // Crear tarea PUTAWAY con ubicación sugerida si se especificó
             $tarea = $this->taskEngineService->createPutawayTask(
                 $ordenId,
                 $lote->id,
                 $cantidad,
-                $usuarioId
+                $usuarioId,
+                $ubicacionSugeridaId
             );
 
             // Ubicación destino sugerida por la tarea
@@ -116,7 +160,7 @@ class InboundController extends Controller
             $ubicacionDestinoId = $detalleTarea ? $detalleTarea->ubicacion_destino_id : null;
 
             // Si hay ubicación temporal, usarla; si no, la destino
-            $ubicacionFinalId = $ubicacionTemporalId ?: $ubicacionDestinoId;
+            $ubicacionFinalId = $ubicacionTemporalId ?: $ubicacionDestinoId ?: $ubicacionSugeridaId;
 
             if ($ubicacionFinalId) {
                 $this->inventoryService->addStock(
@@ -134,6 +178,8 @@ class InboundController extends Controller
                 'data' => [
                     'orden_id' => $ordenId,
                     'lote' => $lote,
+                    'subbodega_id' => $subbodegaId,
+                    'ubicacion_id' => $ubicacionFinalId,
                     'tarea' => $tarea->load(['detalleTareas.ubicacionDestino'])
                 ]
             ], 201);

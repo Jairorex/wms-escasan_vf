@@ -161,29 +161,30 @@ class AlertaController extends Controller
 
             foreach ($lotes as $lote) {
                 $fechaCaducidad = Carbon::parse($lote->fecha_caducidad);
-                $diasRestantes = $fechaHoy->diffInDays($fechaCaducidad, false);
+                $diasRestantes = (int) $fechaHoy->diffInDays($fechaCaducidad, false);
 
                 // Determinar nivel de riesgo y tipo de alerta
                 if ($diasRestantes < 0) {
                     // Ya vencido
                     $tipo = 'VENCIMIENTO';
                     $nivelRiesgo = 'ALTO';
-                    $descripcion = "El lote {$lote->lote_codigo} del producto {$lote->producto->nombre} ({$lote->producto->sku}) está VENCIDO desde hace " . abs($diasRestantes) . " días.";
+                    $diasVencido = abs($diasRestantes);
+                    $descripcion = "El lote {$lote->lote_codigo} del producto {$lote->producto->nombre} ({$lote->producto->sku}) ya se venció hace {$diasVencido} " . ($diasVencido === 1 ? 'día' : 'días') . ".";
                 } elseif ($diasRestantes <= 7) {
                     // Vence en menos de 7 días
                     $tipo = 'VENCIMIENTO';
                     $nivelRiesgo = 'ALTO';
-                    $descripcion = "El lote {$lote->lote_codigo} del producto {$lote->producto->nombre} ({$lote->producto->sku}) vence en {$diasRestantes} días.";
+                    $descripcion = "El lote {$lote->lote_codigo} del producto {$lote->producto->nombre} ({$lote->producto->sku}) vence en {$diasRestantes} " . ($diasRestantes === 1 ? 'día' : 'días') . ".";
                 } elseif ($diasRestantes <= 15) {
                     // Vence en menos de 15 días
                     $tipo = 'VENCIMIENTO';
                     $nivelRiesgo = 'MEDIO';
-                    $descripcion = "El lote {$lote->lote_codigo} del producto {$lote->producto->nombre} ({$lote->producto->sku}) vence en {$diasRestantes} días.";
+                    $descripcion = "El lote {$lote->lote_codigo} del producto {$lote->producto->nombre} ({$lote->producto->sku}) vence en {$diasRestantes} " . ($diasRestantes === 1 ? 'día' : 'días') . ".";
                 } else {
                     // Vence en más de 15 días pero dentro del rango
                     $tipo = 'VENCIMIENTO';
                     $nivelRiesgo = 'BAJO';
-                    $descripcion = "El lote {$lote->lote_codigo} del producto {$lote->producto->nombre} ({$lote->producto->sku}) vence en {$diasRestantes} días.";
+                    $descripcion = "El lote {$lote->lote_codigo} del producto {$lote->producto->nombre} ({$lote->producto->sku}) vence en {$diasRestantes} " . ($diasRestantes === 1 ? 'día' : 'días') . ".";
                 }
 
                 // Verificar si ya existe una alerta pendiente para este lote
@@ -193,7 +194,16 @@ class AlertaController extends Controller
                     ->where('estado', 'PENDIENTE')
                     ->first();
 
-                if (!$alertaExistente) {
+                if ($alertaExistente) {
+                    // Actualizar alerta existente con nueva descripción y nivel de riesgo
+                    $alertaExistente->update([
+                        'descripcion' => $descripcion,
+                        'nivel_riesgo' => $nivelRiesgo,
+                        'fecha_alerta' => now()
+                    ]);
+                    $alertasCreadas++;
+                } else {
+                    // Crear nueva alerta
                     Alerta::create([
                         'tipo' => $tipo,
                         'descripcion' => $descripcion,

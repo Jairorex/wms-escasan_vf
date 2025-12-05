@@ -15,6 +15,7 @@ import HomeScreen from '../screens/HomeScreen';
 import ScannerScreen from '../screens/ScannerScreen';
 import TasksListScreen from '../screens/TasksListScreen';
 import TaskDetailScreen from '../screens/TaskDetailScreen';
+import TaskExecutionScreen from '../screens/TaskExecutionScreen';
 import InventoryScreen from '../screens/InventoryScreen';
 import ProductDetailScreen from '../screens/ProductDetailScreen';
 import LocationSearchScreen from '../screens/LocationSearchScreen';
@@ -51,6 +52,11 @@ function TasksStack() {
         name="TaskDetail" 
         component={TaskDetailScreen}
         options={{ title: 'Detalle de Tarea' }}
+      />
+      <Stack.Screen 
+        name="TaskExecution" 
+        component={TaskExecutionScreen}
+        options={{ title: 'Ejecutar Tarea' }}
       />
     </Stack.Navigator>
   );

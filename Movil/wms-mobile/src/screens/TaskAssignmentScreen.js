@@ -34,22 +34,54 @@ export default function TaskAssignmentScreen({ navigation }) {
 
   const fetchOperarios = async () => {
     try {
-      const response = await api.get(`/supervisores/${userInfo.id}/operarios`);
-      setOperarios(response.data.data || []);
+      // Obtener todos los usuarios con rol de operario
+      const response = await api.get('/usuarios', { 
+        params: { 
+          search: '',
+          // Filtrar por rol de operario - el backend debería manejar esto
+        } 
+      });
+      
+      // Filtrar solo los operarios del response
+      const allUsers = response.data.data || [];
+      const operariosList = allUsers.filter(user => {
+        const rolNombre = user.rol?.nombre || user.rol_nombre || '';
+        return rolNombre.toLowerCase().includes('operario');
+      });
+      
+      setOperarios(operariosList);
     } catch (error) {
       console.error('Error al cargar operarios:', error);
+      // Fallback: intentar obtener operarios del supervisor
+      try {
+        const fallbackResponse = await api.get(`/supervisores/${userInfo.id}/operarios`);
+        const operariosData = fallbackResponse.data.data?.operarios || fallbackResponse.data.data || [];
+        setOperarios(operariosData);
+      } catch (fallbackError) {
+        console.error('Error al cargar operarios del supervisor:', fallbackError);
+        Alert.alert('Error', 'No se pudieron cargar los operarios');
+      }
     }
   };
 
   const handleAssign = async (taskId, operarioId) => {
     try {
-      // Actualizar tarea con operario asignado
-      await api.put(`/tasks/${taskId}`, { asignada_a_usuario_id: operarioId, estado: 'ASIGNADA' });
-      Alert.alert('Éxito', 'Tarea asignada correctamente');
-      fetchTasks();
-      setShowOperarios(null);
+      // Usar el endpoint específico de asignación
+      const response = await api.post(`/tasks/${taskId}/assign`, { 
+        usuario_id: operarioId 
+      });
+      
+      if (response.data.success) {
+        Alert.alert('Éxito', 'Tarea asignada correctamente');
+        fetchTasks();
+        setShowOperarios(null);
+      } else {
+        Alert.alert('Error', response.data.message || 'No se pudo asignar la tarea');
+      }
     } catch (error) {
-      Alert.alert('Error', 'No se pudo asignar la tarea');
+      console.error('Error al asignar tarea:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'No se pudo asignar la tarea';
+      Alert.alert('Error', errorMessage);
     }
   };
 
@@ -83,7 +115,9 @@ export default function TaskAssignmentScreen({ navigation }) {
                 onPress={() => handleAssign(item.id, operario.id)}
               >
                 <User size={18} color="#007bff" />
-                <Text style={styles.operarioName}>{operario.nombre}</Text>
+                <Text style={styles.operarioName}>
+                  {operario.nombre || operario.usuario || `Operario #${operario.id}`}
+                </Text>
               </TouchableOpacity>
             ))
           ) : (
@@ -220,11 +254,20 @@ const styles = StyleSheet.create({
     color: '#333',
     fontWeight: '500',
   },
+  noOperariosContainer: {
+    padding: 12,
+    alignItems: 'center',
+  },
   noOperariosText: {
     fontSize: 14,
     color: '#999',
     fontStyle: 'italic',
-    padding: 12,
+    marginBottom: 4,
+  },
+  noOperariosSubtext: {
+    fontSize: 12,
+    color: '#ccc',
+    textAlign: 'center',
   },
   cancelButton: {
     marginTop: 8,

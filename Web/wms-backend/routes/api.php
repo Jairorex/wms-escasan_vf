@@ -16,6 +16,11 @@ use App\Http\Controllers\Api\UsuarioController;
 use App\Http\Controllers\Api\LoteController;
 use App\Http\Controllers\Api\AlertaController;
 use App\Http\Controllers\Api\InventarioController;
+use App\Http\Controllers\Api\SubbodegaController;
+use App\Http\Controllers\Api\RecepcionController;
+use App\Http\Controllers\Api\ReabastecimientoController;
+use App\Http\Controllers\Api\TemperaturaController;
+use App\Http\Controllers\Api\MovimientoController;
 
 /*
 |--------------------------------------------------------------------------
@@ -47,6 +52,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/{id}', [TaskController::class, 'update']);
         Route::post('/{id}/start', [TaskController::class, 'start']);
         Route::post('/{id}/complete', [TaskController::class, 'complete']);
+        Route::post('/{id}/assign', [TaskController::class, 'assign']);
         Route::post('/validate-scan', [TaskController::class, 'validateScan']);
     });
 
@@ -126,5 +132,82 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/inventario/{id}', [InventarioController::class, 'destroy']);
     Route::get('/inventario/producto/{productoId}/stock', [InventarioController::class, 'stockPorProducto']);
     Route::get('/inventario/ubicacion/{ubicacionId}', [InventarioController::class, 'porUbicacion']);
+
+    // ============================================
+    // NUEVOS MÓDULOS WMS v2.0
+    // ============================================
+
+    // Rutas de Subbodegas
+    Route::prefix('subbodegas')->group(function () {
+        Route::get('/', [SubbodegaController::class, 'index']);
+        Route::get('/tipos', [SubbodegaController::class, 'tipos']);
+        Route::get('/sugerida/{productoId}', [SubbodegaController::class, 'sugerida']);
+        Route::get('/{id}', [SubbodegaController::class, 'show']);
+        Route::post('/', [SubbodegaController::class, 'store']);
+        Route::put('/{id}', [SubbodegaController::class, 'update']);
+        Route::delete('/{id}', [SubbodegaController::class, 'destroy']);
+        Route::get('/{id}/ubicaciones', [SubbodegaController::class, 'ubicaciones']);
+        Route::post('/{id}/ubicaciones', [SubbodegaController::class, 'asignarUbicacion']);
+        Route::post('/{id}/temperatura', [SubbodegaController::class, 'registrarTemperatura']);
+    });
+
+    // Rutas de Recepciones (nuevo módulo mejorado)
+    Route::prefix('recepciones')->group(function () {
+        Route::get('/', [RecepcionController::class, 'index']);
+        Route::get('/estadisticas', [RecepcionController::class, 'estadisticas']);
+        Route::get('/{id}', [RecepcionController::class, 'show']);
+        Route::post('/estandar', [RecepcionController::class, 'crearRecepcionEstandar']);
+        Route::post('/cadena-fria', [RecepcionController::class, 'crearRecepcionCadenaFria']);
+        Route::post('/{id}/aprobar-excepcion', [RecepcionController::class, 'aprobarConExcepcion']);
+        Route::post('/{id}/rechazar', [RecepcionController::class, 'rechazar']);
+    });
+
+    // Rutas de Reabastecimientos
+    Route::prefix('reabastecimientos')->group(function () {
+        Route::get('/', [ReabastecimientoController::class, 'index']);
+        Route::get('/estadisticas', [ReabastecimientoController::class, 'estadisticas']);
+        Route::get('/{id}', [ReabastecimientoController::class, 'show']);
+        Route::post('/', [ReabastecimientoController::class, 'store']);
+        Route::post('/{id}/aprobar', [ReabastecimientoController::class, 'aprobar']);
+        Route::post('/{id}/ejecutar', [ReabastecimientoController::class, 'ejecutar']);
+        Route::post('/{id}/completar', [ReabastecimientoController::class, 'completar']);
+        Route::post('/{id}/cancelar', [ReabastecimientoController::class, 'cancelar']);
+        // Rutas automáticas
+        Route::post('/verificar-stock', [ReabastecimientoController::class, 'verificarStockMinimo']);
+        Route::post('/generar-programados', [ReabastecimientoController::class, 'generarProgramados']);
+    });
+
+    // Rutas de Categorías de Riesgo
+    Route::prefix('categorias-riesgo')->group(function () {
+        Route::get('/', [CatalogoController::class, 'getCategoriasRiesgo']);
+        Route::post('/', [CatalogoController::class, 'createCategoriaRiesgo']);
+        Route::put('/{id}', [CatalogoController::class, 'updateCategoriaRiesgo']);
+    });
+
+    // Rutas de Reglas de Compatibilidad
+    Route::prefix('reglas-compatibilidad')->group(function () {
+        Route::get('/', [CatalogoController::class, 'getReglasCompatibilidad']);
+        Route::post('/', [CatalogoController::class, 'createReglaCompatibilidad']);
+        Route::put('/{id}', [CatalogoController::class, 'updateReglaCompatibilidad']);
+        Route::delete('/{id}', [CatalogoController::class, 'deleteReglaCompatibilidad']);
+    });
+
+    // Rutas de Control de Temperatura
+    Route::prefix('temperaturas')->group(function () {
+        Route::get('/lecturas', [TemperaturaController::class, 'index']);
+        Route::post('/registrar', [TemperaturaController::class, 'registrar']);
+        Route::get('/historial/{subbodegaId}', [TemperaturaController::class, 'historial']);
+        Route::get('/ultimas', [TemperaturaController::class, 'ultimasLecturas']);
+    });
+
+    // Rutas de Movimientos de Inventario
+    Route::prefix('movimientos')->group(function () {
+        Route::get('/', [MovimientoController::class, 'index']);
+        Route::post('/', [MovimientoController::class, 'store']);
+        Route::get('/{id}', [MovimientoController::class, 'show']);
+    });
+
+    // Rutas de Lotes - Generar código de barras
+    Route::post('/lotes/{id}/generate-barcode', [LoteController::class, 'generateBarcode']);
 });
 

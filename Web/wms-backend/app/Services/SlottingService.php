@@ -104,13 +104,19 @@ class SlottingService
     public function validateLocation(Ubicacion $ubicacion, Producto $producto, float $cantidad, float $pesoTotal): array
     {
         $tipoProductoNombre = $producto->tipoProducto ? $producto->tipoProducto->nombre : null;
+        $tipoUbicacionNombre = $ubicacion->tipoUbicacion ? $ubicacion->tipoUbicacion->nombre : null;
         
-        // Validar compatibilidad de tipo
-        if ($ubicacion->tipoUbicacion->nombre !== $tipoProductoNombre) {
+        // Validar compatibilidad de tipo SOLO si ambos tienen tipo definido
+        if ($tipoProductoNombre && $tipoUbicacionNombre && $tipoUbicacionNombre !== $tipoProductoNombre) {
             return [
                 'valid' => false,
-                'message' => "El tipo de ubicación ({$ubicacion->tipoUbicacion->nombre}) no es compatible con el tipo de producto ({$tipoProductoNombre})"
+                'message' => "El tipo de ubicación ({$tipoUbicacionNombre}) no es compatible con el tipo de producto ({$tipoProductoNombre})"
             ];
+        }
+        
+        // Si alguno no tiene tipo definido, permitir pero advertir
+        if (!$tipoProductoNombre || !$tipoUbicacionNombre) {
+            // Continuamos la validación pero es compatible en cuanto a tipos
         }
 
         // Calcular cantidad y peso actual

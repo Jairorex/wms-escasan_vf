@@ -8,7 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class DetalleTarea extends Model
 {
     protected $table = 'Detalle_Tarea';
-    
+    public $timestamps = false;
+
     protected $fillable = [
         'tarea_id',
         'lote_id',

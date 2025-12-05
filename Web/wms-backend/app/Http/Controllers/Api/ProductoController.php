@@ -26,6 +26,11 @@ class ProductoController extends Controller
                 });
             }
 
+            // Filtro por requiere_temperatura
+            if ($request->has('requiere_temperatura')) {
+                $query->where('requiere_temperatura', $request->boolean('requiere_temperatura'));
+            }
+
             $productos = $query->get();
 
             return response()->json([

@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 class TaskController extends Controller
 {
@@ -90,23 +91,24 @@ class TaskController extends Controller
                 $query->where('estado', $estado);
             }
 
+            // Filtro por tipo_tarea si se proporciona
+            if ($request->has('tipo_tarea')) {
+                $tipoTarea = $request->query('tipo_tarea');
+                $query->where('tipo_tarea', $tipoTarea);
+            }
+
             // Filtros por rol
             $user = $request->user();
             if ($user) {
                 if ($user->isOperario()) {
-                    // Operario solo ve sus tareas
+                    // Operario solo ve sus tareas asignadas
                     $query->where('asignada_a_usuario_id', $user->id);
                 } elseif ($user->isSupervisor()) {
-                    // Supervisor ve tareas de sus operarios
-                    $operariosIds = $user->operarios()->pluck('id');
-                    if ($operariosIds->count() > 0) {
-                        $query->whereIn('asignada_a_usuario_id', $operariosIds);
-                    } else {
-                        // Si no tiene operarios, no verá tareas
-                        $query->whereRaw('1 = 0');
-                    }
+                    // Supervisor ve TODAS las tareas para poder asignarlas
+                    // No aplicamos filtro - ve todas las tareas como el admin
+                    // Esto permite que pueda asignar tareas a cualquier operario
                 }
-                // Admin ve todas las tareas (sin filtro adicional)
+                // Admin y Supervisor ven todas las tareas (sin filtro adicional)
             }
 
             // Obtener las tareas básicas primero
@@ -116,6 +118,7 @@ class TaskController extends Controller
             foreach ($tareas as $tarea) {
                 try {
                     $tarea->load('orden');
+                    $tarea->load('usuarioAsignado');
                     $tarea->load('detalleTareas');
                     
                     // Cargar relaciones de detalleTareas
@@ -179,7 +182,8 @@ class TaskController extends Controller
                     $q->with('ubicacionOrigen');
                     $q->with('ubicacionDestino');
                 },
-                'orden'
+                'orden',
+                'usuarioAsignado'
             ])->findOrFail($id);
 
             return response()->json([
@@ -277,7 +281,7 @@ class TaskController extends Controller
                 'prioridad' => 'nullable|string|in:BAJA,NORMAL,ALTA,URGENTE',
                 'orden_id' => 'nullable|integer|exists:Ordenes,id',
                 'usuario_asignado_id' => 'nullable|integer|exists:Usuarios,id',
-                'estado' => 'nullable|string|in:CREADA,ASIGNADA,EN_PROCESO,COMPLETADA,CANCELADA',
+                'estado' => 'nullable|string|in:CREADA,ASIGNADA,EN_CURSO,EN_PROCESO,COMPLETADA,CANCELADA',
                 'observaciones' => 'nullable|string',
             ]);
 
@@ -299,8 +303,8 @@ class TaskController extends Controller
 
             // Manejar timestamps según cambio de estado
             if ($estadoAnterior !== $nuevoEstado) {
-                // Si cambia a EN_PROCESO y no tiene fecha_inicio, establecerla
-                if ($nuevoEstado === 'EN_PROCESO' && !$tarea->fecha_inicio) {
+                // Si cambia a EN_CURSO o EN_PROCESO y no tiene fecha_inicio, establecerla
+                if (($nuevoEstado === 'EN_CURSO' || $nuevoEstado === 'EN_PROCESO') && !$tarea->fecha_inicio) {
                     $updateData['fecha_inicio'] = now();
                 }
                 // Si cambia a COMPLETADA y no tiene fecha_fin, establecerla
@@ -329,7 +333,7 @@ class TaskController extends Controller
     }
 
     /**
-     * Iniciar una tarea (cambiar estado a EN_PROCESO)
+     * Iniciar una tarea (cambiar estado a EN_CURSO)
      * POST /api/tasks/{id}/start
      */
     public function start(Request $request, int $id): JsonResponse
@@ -344,10 +348,23 @@ class TaskController extends Controller
                 ], 400);
             }
 
-            $tarea->update([
-                'estado' => 'EN_PROCESO',
-                'fecha_inicio' => now(),
-            ]);
+            // Usar actualización directa con DB para evitar problemas con triggers
+            $updateData = [
+                'estado' => 'EN_CURSO',
+            ];
+            
+            // Solo actualizar fecha_inicio si no existe
+            if (!$tarea->fecha_inicio) {
+                $updateData['fecha_inicio'] = now();
+            }
+            
+            // Actualizar usando DB directamente para evitar problemas con eventos/triggers
+            DB::table('Tareas')
+                ->where('id', $id)
+                ->update($updateData);
+            
+            // Recargar la tarea
+            $tarea->refresh();
 
             return response()->json([
                 'success' => true,
@@ -356,7 +373,10 @@ class TaskController extends Controller
             ], 200);
 
         } catch (\Exception $e) {
-            Log::error('Error en start: ' . $e->getMessage());
+            Log::error('Error en start: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'tarea_id' => $id
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Error al iniciar la tarea: ' . $e->getMessage(),
@@ -368,11 +388,12 @@ class TaskController extends Controller
     /**
      * Finalizar una tarea (cambiar estado a COMPLETADA)
      * POST /api/tasks/{id}/complete
+     * Si es una tarea PICK, crea automáticamente una tarea PACK
      */
     public function complete(Request $request, int $id): JsonResponse
     {
         try {
-            $tarea = \App\Models\Tarea::findOrFail($id);
+            $tarea = \App\Models\Tarea::with('detalleTareas')->findOrFail($id);
 
             if ($tarea->estado === 'COMPLETADA') {
                 return response()->json([
@@ -394,11 +415,64 @@ class TaskController extends Controller
 
             $tarea->update($updateData);
 
-            return response()->json([
+            $packingTaskId = null;
+
+            // Si es una tarea PICK, crear automáticamente una tarea PACK
+            if ($tarea->tipo_tarea === 'PICK' && $tarea->orden_id) {
+                try {
+                    // Generar número de tarea para packing
+                    $ultimaTarea = \App\Models\Tarea::orderBy('id', 'desc')->first();
+                    $numeroTarea = 'PACK-' . str_pad(($ultimaTarea ? $ultimaTarea->id + 1 : 1), 6, '0', STR_PAD_LEFT);
+                    
+                    $packingTask = \App\Models\Tarea::create([
+                        'orden_id' => $tarea->orden_id,
+                        'tipo_tarea' => 'PACK',
+                        'estado' => 'CREADA',
+                        'prioridad' => $tarea->prioridad ?? 5,
+                        'asignada_a_usuario_id' => null, // Sin asignar - supervisor asignará
+                        'fecha_creacion' => now(),
+                        'numero_tarea' => $numeroTarea,
+                        'descripcion' => 'Tarea de Packing generada automáticamente al completar Picking #' . $tarea->numero_tarea
+                    ]);
+
+                    // Cargar los detalles de picking con sus relaciones
+                    $tarea->load(['detalleTareas.lote', 'detalleTareas.producto']);
+                    
+                    // Crear detalles de packing basados en los detalles de picking
+                    foreach ($tarea->detalleTareas as $detallePick) {
+                        \App\Models\DetalleTarea::create([
+                            'tarea_id' => $packingTask->id,
+                            'lote_id' => $detallePick->lote_id,
+                            'cantidad_solicitada' => $detallePick->cantidad_solicitada,
+                            'producto_id' => $detallePick->lote->producto_id ?? $detallePick->producto_id ?? null,
+                            // Para packing, no necesitamos ubicaciones específicas
+                        ]);
+                    }
+                    
+                    \Illuminate\Support\Facades\Log::info("Detalles de packing creados: " . $tarea->detalleTareas->count() . " detalles");
+
+                    $packingTaskId = $packingTask->id;
+
+                    \Illuminate\Support\Facades\Log::info("Tarea de packing creada automáticamente: {$packingTask->id} desde picking: {$tarea->id}");
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error("Error al crear tarea de packing: " . $e->getMessage());
+                    // No fallar la completación de picking si falla la creación de packing
+                }
+            }
+
+            $response = [
                 'success' => true,
                 'message' => 'Tarea completada',
                 'data' => $tarea->load(['detalleTareas', 'orden', 'usuarioAsignado'])
-            ], 200);
+            ];
+
+            // Incluir ID de tarea de packing si se creó
+            if ($packingTaskId) {
+                $response['packing_task_id'] = $packingTaskId;
+                $response['message'] = 'Tarea completada - Tarea de packing creada automáticamente';
+            }
+
+            return response()->json($response, 200);
 
         } catch (\Exception $e) {
             Log::error('Error en complete: ' . $e->getMessage());
@@ -409,5 +483,66 @@ class TaskController extends Controller
             ], 500);
         }
     }
-}
 
+    /**
+     * Asignar una tarea a un operario
+     * POST /api/tasks/{id}/assign
+     */
+    public function assign(Request $request, int $id): JsonResponse
+    {
+        try {
+            $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+                'usuario_id' => 'required|integer|exists:Usuarios,id',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error de validación',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $tarea = \App\Models\Tarea::findOrFail($id);
+
+            // Validar que la tarea esté en estado CREADA
+            if ($tarea->estado !== 'CREADA') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Solo se pueden asignar tareas en estado CREADA'
+                ], 400);
+            }
+
+            // Validar que el usuario sea un operario
+            $usuario = \App\Models\Usuario::findOrFail($request->input('usuario_id'));
+            $rolUsuario = $usuario->rol;
+            $rolNombre = is_string($rolUsuario) ? $rolUsuario : ($rolUsuario->nombre ?? '');
+            
+            if (!str_contains(strtolower($rolNombre), 'operario')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El usuario debe ser un operario'
+                ], 400);
+            }
+
+            // Asignar la tarea
+            $tarea->asignada_a_usuario_id = $request->input('usuario_id');
+            $tarea->estado = 'ASIGNADA';
+            $tarea->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Tarea asignada exitosamente',
+                'data' => $tarea->load(['detalleTareas', 'orden', 'usuarioAsignado'])
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Error en assign: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al asignar la tarea: ' . $e->getMessage(),
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+}

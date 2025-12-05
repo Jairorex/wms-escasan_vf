@@ -100,6 +100,7 @@ class InventoryService
      * @param float $cantidad
      * @param int|null $tareaId
      * @param int|null $usuarioId
+     * @param int|null $ubicacionOrigenId Si es null, se asume que viene de recepción (origen externo)
      * @return array
      */
     public function addStock(
@@ -107,9 +108,10 @@ class InventoryService
         int $ubicacionId,
         float $cantidad,
         ?int $tareaId = null,
-        ?int $usuarioId = null
+        ?int $usuarioId = null,
+        ?int $ubicacionOrigenId = null
     ): array {
-        return DB::transaction(function () use ($loteId, $ubicacionId, $cantidad, $tareaId, $usuarioId) {
+        return DB::transaction(function () use ($loteId, $ubicacionId, $cantidad, $tareaId, $usuarioId, $ubicacionOrigenId) {
             // Obtener o crear inventario
             $inventario = Inventario::firstOrNew([
                 'lote_id' => $loteId,
@@ -121,9 +123,11 @@ class InventoryService
             $inventario->save();
 
             // Crear registro de movimiento
+            // Si ubicacionOrigenId es null, significa que viene de recepción (origen externo)
             Movimiento::create([
                 'lote_id' => $loteId,
                 'cantidad' => $cantidad,
+                'ubicacion_origen_id' => $ubicacionOrigenId, // null = RECEPCION
                 'ubicacion_destino_id' => $ubicacionId,
                 'tarea_id' => $tareaId,
                 'usuario_id' => $usuarioId,
