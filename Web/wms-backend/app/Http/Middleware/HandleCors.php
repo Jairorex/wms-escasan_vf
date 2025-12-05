@@ -31,10 +31,13 @@ class HandleCors
                 $isAllowed = true;
             }
             
-            // Verificar patrones
-            if (!$isAllowed) {
+            // Verificar patrones (regex)
+            if (!$isAllowed && !empty($allowedOriginsPatterns)) {
                 foreach ($allowedOriginsPatterns as $pattern) {
-                    if (preg_match('#^' . str_replace(['*', '.'], ['.*', '\.'], $pattern) . '$#', $origin)) {
+                    // Convertir patrón de Laravel CORS a regex
+                    // Ejemplo: 'https://.*\\.vercel\\.app' -> '/^https:\/\/.*\.vercel\.app$/'
+                    $regex = '#^' . str_replace(['\\', '*'], ['', '.*'], $pattern) . '$#';
+                    if (preg_match($regex, $origin)) {
                         $isAllowed = true;
                         break;
                     }
