@@ -25,9 +25,8 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction
 RUN mkdir -p storage/framework/{sessions,views,cache} storage/logs bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
 
-# Copiar y hacer ejecutable el script de entrada
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+# Copiar y hacer ejecutable el script de entrada (después de COPY . .)
+RUN cp entrypoint.sh /usr/local/bin/entrypoint.sh && chmod +x /usr/local/bin/entrypoint.sh
 
 # Exponer puerto (Railway usa $PORT dinámicamente)
 EXPOSE 8080
