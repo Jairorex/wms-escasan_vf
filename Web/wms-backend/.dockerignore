@@ -1,0 +1,56 @@
+# Dependencias
+/vendor
+/node_modules
+
+# Archivos de desarrollo
+/.git
+/.github
+/.vscode
+/.idea
+
+# Archivos de Laravel
+/storage/*.key
+/storage/logs/*
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+!/storage/logs/.gitkeep
+!/storage/framework/cache/.gitkeep
+!/storage/framework/sessions/.gitkeep
+!/storage/framework/views/.gitkeep
+
+# Archivos de configuración local
+.env
+.env.backup
+.env.production
+.phpunit.result.cache
+
+# Archivos de documentación
+*.md
+!README.md
+
+# Archivos de scripts
+*.ps1
+*.sh
+*.bat
+
+# Archivos de test
+/tests
+/phpunit.xml
+
+# Archivos temporales
+*.log
+*.tmp
+*.cache
+
+# Archivos de IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
