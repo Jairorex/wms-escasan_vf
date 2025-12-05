@@ -87,7 +87,27 @@ class HandleCors
                 }
             }
             
+            // Log para debug
+            if (config('app.debug', false)) {
+                \Log::info('CORS OPTIONS Response', [
+                    'origin' => $origin,
+                    'is_allowed' => $isAllowed,
+                    'allowed_origin' => $allowedOrigin,
+                    'headers' => $response->headers->all(),
+                ]);
+            }
+            
             return $response;
+        }
+        
+        // Log para debug de peticiones no-OPTIONS
+        if (config('app.debug', false)) {
+            \Log::info('CORS Request', [
+                'method' => $request->getMethod(),
+                'path' => $request->path(),
+                'origin' => $origin,
+                'is_allowed' => $isAllowed,
+            ]);
         }
         
         // Para otras peticiones, continuar y agregar headers CORS
