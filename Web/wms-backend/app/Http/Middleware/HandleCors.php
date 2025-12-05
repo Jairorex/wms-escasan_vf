@@ -46,6 +46,17 @@ class HandleCors
                     }
                 }
             }
+            
+            // Debug temporal: Log para verificar qué está pasando
+            if (config('app.debug', false)) {
+                \Log::info('CORS Debug', [
+                    'origin' => $origin,
+                    'allowed_origins' => $allowedOrigins,
+                    'allowed_patterns' => $allowedOriginsPatterns,
+                    'is_allowed' => $isAllowed,
+                    'allowed_origin' => $allowedOrigin,
+                ]);
+            }
         }
         
         // Preparar headers de CORS
