@@ -4,9 +4,10 @@ FROM php:8.2-cli
 # Instalar extensiones necesarias y Microsoft ODBC Driver para SQL Server
 RUN apt-get update && apt-get install -y \
     git unzip libzip-dev gnupg curl libssl-dev unixodbc-dev ca-certificates \
+    && mkdir -p /usr/share/keyrings \
     && curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg \
-    && curl -fsSL https://packages.microsoft.com/config/debian/11/prod.list > /etc/apt/sources.list.d/mssql-release.list \
-    && sed -i 's|deb https://packages.microsoft.com|deb [signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com|g' /etc/apt/sources.list.d/mssql-release.list \
+    && chmod 644 /usr/share/keyrings/microsoft-prod.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/debian/11/prod bullseye main" > /etc/apt/sources.list.d/mssql-release.list \
     && apt-get update \
     && ACCEPT_EULA=Y apt-get install -y msodbcsql18 \
     && docker-php-ext-install zip pdo \
