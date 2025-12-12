@@ -21,11 +21,12 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 # Establecer carpeta de trabajo
 WORKDIR /var/www/html
 
-# Copiar archivos del proyecto (Railway ya está en el directorio correcto)
-COPY . .
+# Copiar los archivos del backend Laravel
+COPY ./Web/wms-backend/ ./
 
 # Instalar dependencias de Laravel
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+RUN if [ ! -f "composer.json" ]; then echo "❌ composer.json no encontrado"; exit 1; fi \
+    && composer install --no-dev --optimize-autoloader --no-interaction
 
 # Crear directorios necesarios y establecer permisos
 RUN mkdir -p storage/framework/{sessions,views,cache} storage/logs bootstrap/cache \
